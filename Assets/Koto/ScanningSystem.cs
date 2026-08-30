@@ -1,7 +1,8 @@
 using UnityEngine;
+using UnityEngine.UI;
 
 /// <summary>
-/// 切換玩家的掃描模式，並在進入模式時播放一次由內向外擴散的光圈。
+/// 切換玩家的掃描模式，並在進入時播放由內向外、退出時播放由外向內的光圈。
 /// 將此元件掛在玩家物件上即可使用。
 /// </summary>
 public class ScanningSystem : MonoBehaviour
@@ -30,18 +31,32 @@ public class ScanningSystem : MonoBehaviour
     [SerializeField, Min(0.01f)] private float surfaceRayDistance = 30f;
     [SerializeField] private QueryTriggerInteraction triggerInteraction = QueryTriggerInteraction.Ignore;
 
+    [Header("掃描畫面遮罩")]
+    [Tooltip("掃描模式時覆蓋畫面的暗色遮罩。Alpha 值越大，背景越暗。")]
+    [SerializeField] private Color scanMaskColor = new Color(0f, 0f, 0f, 0.65f);
+    [Tooltip("遮罩的 UI 顯示層級；掃描文字所在 Canvas 的排序值需高於此數值。")]
+    [SerializeField] private int maskSortingOrder = 100;
+
+    [Header("掃描專用文字")]
+    [Tooltip("將物件上的文字或文字根物件拖入此處；只有掃描模式時才會顯示。")]
+    [SerializeField] private GameObject[] scanOnlyTextObjects = System.Array.Empty<GameObject>();
+
     /// <summary>玩家目前是否處於掃描模式。</summary>
     public bool IsScanning { get; private set; }
 
     private LineRenderer ringRenderer;
     private Transform ringTransform;
+    private GameObject scanMaskObject;
     private float expansionTimer;
-    private bool isExpanding;
+    private bool isRingAnimating;
+    private bool isContracting;
     private readonly RaycastHit[] surfaceHits = new RaycastHit[16];
 
     private void Awake()
     {
         CreateRingRenderer();
+        CreateScanMask();
+        SetScanPresentation(false);
         LogScanningStatus();
     }
 
@@ -72,15 +87,19 @@ public class ScanningSystem : MonoBehaviour
         if (enabled)
         {
             expansionTimer = 0f;
-            isExpanding = true;
+            isContracting = false;
+            isRingAnimating = true;
             ringRenderer.enabled = true;
         }
         else
         {
-            isExpanding = false;
-            ringRenderer.enabled = false;
+            expansionTimer = 0f;
+            isContracting = true;
+            isRingAnimating = true;
+            ringRenderer.enabled = true;
         }
 
+        SetScanPresentation(enabled);
         LogScanningStatus();
     }
 
@@ -124,26 +143,72 @@ public class ScanningSystem : MonoBehaviour
         {
             Destroy(ringTransform.gameObject);
         }
+
+        if (scanMaskObject != null)
+        {
+            Destroy(scanMaskObject);
+        }
     }
 
     private void UpdateRingVisual()
     {
-        if (!isExpanding)
+        if (!isRingAnimating)
         {
             return;
         }
 
         expansionTimer += Time.deltaTime;
         float progress = Mathf.Clamp01(expansionTimer / expansionDuration);
-        float radius = Mathf.Lerp(0f, scanRadius, progress);
+        float radius = isContracting
+            ? Mathf.Lerp(scanRadius, 0f, progress)
+            : Mathf.Lerp(0f, scanRadius, progress);
         float alpha = Mathf.Lerp(ringColor.a, 0f, progress);
 
         DrawRing(radius, new Color(ringColor.r, ringColor.g, ringColor.b, alpha));
 
         if (progress >= 1f)
         {
-            isExpanding = false;
+            isRingAnimating = false;
             ringRenderer.enabled = false;
+        }
+    }
+
+    private void CreateScanMask()
+    {
+        scanMaskObject = new GameObject("Scanning Dark Mask", typeof(RectTransform), typeof(Canvas), typeof(Image));
+        Canvas canvas = scanMaskObject.GetComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.sortingOrder = maskSortingOrder;
+
+        RectTransform rectTransform = scanMaskObject.GetComponent<RectTransform>();
+        rectTransform.anchorMin = Vector2.zero;
+        rectTransform.anchorMax = Vector2.one;
+        rectTransform.offsetMin = Vector2.zero;
+        rectTransform.offsetMax = Vector2.zero;
+
+        Image image = scanMaskObject.GetComponent<Image>();
+        image.color = scanMaskColor;
+        image.raycastTarget = false;
+    }
+
+    private void SetScanPresentation(bool visible)
+    {
+        if (scanMaskObject != null)
+        {
+            scanMaskObject.SetActive(visible);
+        }
+
+        if (scanOnlyTextObjects == null)
+        {
+            return;
+        }
+
+        foreach (GameObject textObject in scanOnlyTextObjects)
+        {
+            if (textObject != null)
+            {
+                textObject.SetActive(visible);
+            }
         }
     }
 
