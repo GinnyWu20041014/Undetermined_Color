@@ -93,7 +93,7 @@ public class PlayerAttack : MonoBehaviour
             EnemyController enemy = hitCollider.GetComponentInParent<EnemyController>();
             if (enemy != null && hitEnemies.Add(enemy))
             {
-                enemy.TakeDamage(attackDamage);
+                enemy.TakeDamage(attackDamage, hitCollider);
             }
         }
 
