@@ -15,7 +15,7 @@ public class EnemyController : MonoBehaviour
 
     [Header("敵人數值")]
     [InspectorName("生命值")]
-    [Tooltip("實體與本體共用的生命值。")]
+    [Tooltip("實體與本體各自使用此數值作為初始生命值。")]
     [SerializeField, Min(1)] private int health = 100;
     [InspectorName("攻擊力")]
     [Tooltip("敵人的攻擊力數值。")]
@@ -35,6 +35,14 @@ public class EnemyController : MonoBehaviour
     [Tooltip("本體被擊殺後顯示的一般 NPC 物件。")]
     [SerializeField] private GameObject normalNpc = null;
 
+    [Header("Enemy1 圖像顯示")]
+    [InspectorName("敵對圖像")]
+    [Tooltip("Enemy1 在敵對狀態時顯示的 Entity Sprite。")]
+    [SerializeField] private Sprite entitySprite = null;
+    [InspectorName("友好圖像")]
+    [Tooltip("Enemy1 在友好狀態時顯示的 NPC Sprite。")]
+    [SerializeField] private Sprite npcSprite = null;
+
     [Header("偵測目標")]
     [InspectorName("偵測光源")]
     [Tooltip("可加入多個光源；本體在任一光源照射範圍內時會顯示。")]
@@ -47,6 +55,9 @@ public class EnemyController : MonoBehaviour
     [InspectorName("玩家偵測範圍")]
     [Tooltip("玩家進入此圓形範圍時，實體會離開巡邏範圍並追蹤玩家。")]
     [SerializeField, Min(0.01f)] private float playerDetectionRange = 8f;
+    [InspectorName("攻擊範圍")]
+    [Tooltip("玩家進入此圓形範圍時，實體停止追擊並對玩家攻擊；離開後會恢復追擊。")]
+    [SerializeField, Min(0.01f)] private float attackRange = 1.5f;
     [InspectorName("移動速度")]
     [SerializeField, Min(0f)] private float moveSpeed = 2f;
     [InspectorName("移動範圍")]
@@ -55,20 +66,31 @@ public class EnemyController : MonoBehaviour
 
     private const float ReviveDelaySeconds = 3f;
 
-    private int currentHealth;
+    private int entityHealth;
+    private int bodyHealth;
     private bool isEntityDefeated;
     private Vector3 bodyLocalPosition;
     private Quaternion bodyLocalRotation;
+    private Quaternion entityOriginalLocalRotation;
     private Vector3 wanderTarget;
+    private bool hasAttackedPlayerInRange;
+    private SpriteRenderer entitySpriteRenderer;
 
     /// <summary>供其他敵人攻擊邏輯讀取的攻擊力。</summary>
     public int AttackPower => attackPower;
 
     private void Awake()
     {
-        currentHealth = health;
+        entityHealth = health;
+        bodyHealth = health;
         status = EnemyStatus.敵對狀態;
         wanderTarget = entity != null ? entity.transform.position : transform.position;
+
+        if (entity != null)
+        {
+            entityOriginalLocalRotation = entity.transform.localRotation;
+            entitySpriteRenderer = entity.GetComponent<SpriteRenderer>();
+        }
 
         if (body != null && entity != null)
         {
@@ -78,11 +100,12 @@ public class EnemyController : MonoBehaviour
 
         SetActive(body, false);
         SetActive(normalNpc, false);
+        UpdateEntitySprite();
     }
 
     private void Update()
     {
-        if (entity == null)
+        if (GetMovingObject() == null)
         {
             return;
         }
@@ -96,16 +119,18 @@ public class EnemyController : MonoBehaviour
 
         if (status == EnemyStatus.友好狀態)
         {
+            UpdateEntitySprite();
             WanderInsideMovementArea();
             return;
         }
 
         if (IsPlayerDetected())
         {
-            MoveEntity(player.position);
+            UpdatePlayerChaseAndAttack();
         }
         else
         {
+            hasAttackedPlayerInRange = false;
             WanderInsideMovementArea();
         }
     }
@@ -126,15 +151,16 @@ public class EnemyController : MonoBehaviour
     /// <summary>由玩家攻擊腳本呼叫，並依命中的實體或本體處理結果。</summary>
     public void TakeDamage(int damage, Collider hitCollider)
     {
-        if (damage <= 0 || isEntityDefeated || status == EnemyStatus.友好狀態 || hitCollider == null)
+        if (damage <= 0 || status == EnemyStatus.友好狀態 || hitCollider == null)
         {
             return;
         }
 
         if (IsPartOf(hitCollider, body))
         {
-            currentHealth = Mathf.Max(0, currentHealth - damage);
-            if (currentHealth == 0)
+            bodyHealth = Mathf.Max(0, bodyHealth - damage);
+            Debug.Log($"【敵人】本體受到 {damage} 點傷害，目前生命值：{bodyHealth}。", this);
+            if (bodyHealth == 0)
             {
                 BecomeFriendlyNpc();
             }
@@ -142,13 +168,14 @@ public class EnemyController : MonoBehaviour
             return;
         }
 
-        if (!IsPartOf(hitCollider, entity))
+        if (!IsPartOf(hitCollider, entity) || isEntityDefeated)
         {
             return;
         }
 
-        currentHealth = Mathf.Max(0, currentHealth - damage);
-        if (currentHealth == 0)
+        entityHealth = Mathf.Max(0, entityHealth - damage);
+        Debug.Log($"【敵人】實體受到 {damage} 點傷害，目前生命值：{entityHealth}。", this);
+        if (entityHealth == 0)
         {
             StartCoroutine(ReviveEntity());
         }
@@ -167,9 +194,30 @@ public class EnemyController : MonoBehaviour
             return false;
         }
 
-        Vector3 entityPosition = Flatten(entity.transform.position);
+        Vector3 entityPosition = Flatten(GetMovingObject().transform.position);
         Vector3 playerPosition = Flatten(player.position);
         return Vector3.Distance(entityPosition, playerPosition) <= playerDetectionRange;
+    }
+
+    private void UpdatePlayerChaseAndAttack()
+    {
+        float distanceToPlayer = Vector3.Distance(
+            Flatten(GetMovingObject().transform.position),
+            Flatten(player.position));
+
+        if (distanceToPlayer > attackRange)
+        {
+            hasAttackedPlayerInRange = false;
+            MoveEntity(player.position);
+            return;
+        }
+
+        // 進入攻擊範圍時停止追擊並攻擊一次；離開範圍後才可再次攻擊。
+        if (!hasAttackedPlayerInRange)
+        {
+            hasAttackedPlayerInRange = true;
+            player.SendMessage("TakeDamage", attackPower, SendMessageOptions.DontRequireReceiver);
+        }
     }
 
     private void WanderInsideMovementArea()
@@ -179,10 +227,11 @@ public class EnemyController : MonoBehaviour
             return;
         }
 
-        Vector3 entityPosition = Flatten(entity.transform.position);
+        GameObject movingObject = GetMovingObject();
+        Vector3 entityPosition = Flatten(movingObject.transform.position);
         if (!IsInsideMovementArea(entityPosition))
         {
-            MoveEntity(movementArea.ClosestPoint(entity.transform.position));
+            MoveEntity(movementArea.ClosestPoint(movingObject.transform.position));
             return;
         }
 
@@ -206,7 +255,7 @@ public class EnemyController : MonoBehaviour
         {
             Vector3 candidate = new Vector3(
                 Random.Range(bounds.min.x, bounds.max.x),
-                entity.transform.position.y,
+                GetMovingObject().transform.position.y,
                 Random.Range(bounds.min.z, bounds.max.z));
 
             if (IsInsideMovementArea(candidate))
@@ -216,15 +265,16 @@ public class EnemyController : MonoBehaviour
         }
 
         Vector3 center = bounds.center;
-        return new Vector3(center.x, entity.transform.position.y, center.z);
+        return new Vector3(center.x, GetMovingObject().transform.position.y, center.z);
     }
 
     private void MoveEntity(Vector3 destination)
     {
-        Vector3 currentPosition = entity.transform.position;
+        GameObject movingObject = GetMovingObject();
+        Vector3 currentPosition = movingObject.transform.position;
         Vector3 targetPosition = new Vector3(destination.x, currentPosition.y, destination.z);
         // 只移動 X、Z 軸，且不改變實體原本的旋轉。
-        entity.transform.position = Vector3.MoveTowards(currentPosition, targetPosition, moveSpeed * Time.deltaTime);
+        movingObject.transform.position = Vector3.MoveTowards(currentPosition, targetPosition, moveSpeed * Time.deltaTime);
     }
 
     private bool IsIlluminated()
@@ -265,30 +315,43 @@ public class EnemyController : MonoBehaviour
     private IEnumerator ReviveEntity()
     {
         isEntityDefeated = true;
-        SetActive(entity, false);
+        entity.transform.localRotation = entityOriginalLocalRotation * Quaternion.Euler(90f, 0f, 0f);
         SetActive(body, false);
+        Debug.Log($"【敵人】實體生命值歸零，已倒下；{ReviveDelaySeconds:0.##} 秒後復活。", this);
         yield return new WaitForSeconds(ReviveDelaySeconds);
 
-        currentHealth = health;
+        entityHealth = health;
         isEntityDefeated = false;
-        SetActive(entity, true);
+        entity.transform.localRotation = entityOriginalLocalRotation;
+        Debug.Log("【敵人】實體已復活，生命值已恢復。", this);
     }
 
     private void BecomeFriendlyNpc()
     {
         status = EnemyStatus.友好狀態;
         StopAllCoroutines();
-        SetActive(entity, false);
         SetActive(body, false);
 
-        // 將目前顯示與移動的實體替換為一般 NPC。
-        entity = normalNpc;
-        SetActive(entity, true);
+        // Entity 物件保持啟用以保留移動；僅替換 Enemy1 的 Sprite 為 NPC。
+        UpdateEntitySprite();
+        wanderTarget = entity.transform.position;
 
-        if (entity != null)
+        Debug.Log("【敵人】本體生命值歸零，已切換為友好狀態；Enemy1 已改顯示 NPC 圖像。", this);
+    }
+
+    private GameObject GetMovingObject()
+    {
+        return entity;
+    }
+
+    private void UpdateEntitySprite()
+    {
+        if (entitySpriteRenderer == null)
         {
-            wanderTarget = entity.transform.position;
+            return;
         }
+
+        entitySpriteRenderer.sprite = status == EnemyStatus.敵對狀態 ? entitySprite : npcSprite;
     }
 
     private static bool IsPartOf(Collider hitCollider, GameObject targetObject)
