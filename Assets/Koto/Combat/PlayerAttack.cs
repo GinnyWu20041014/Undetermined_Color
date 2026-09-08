@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -12,24 +11,17 @@ public class PlayerAttack : MonoBehaviour
     [SerializeField] private KeyCode attackKey = KeyCode.F;
     [SerializeField] private ScanningSystem scanningSystem;
 
-    [Header("攻擊方向")]
-    [Tooltip("指定攻擊的起點與方向。攻擊會由此物件的位置，沿它的藍色 Z 軸方向發出。")]
+    [Header("攻擊中心")]
+    [Tooltip("指定圓形攻擊範圍的中心位置。")]
     [SerializeField] private Transform attackDirection = null;
 
     [Header("攻擊判定")]
     [Tooltip("攻擊造成的傷害。")]
     [SerializeField, Min(1)] private int attackDamage = 20;
-    [Tooltip("從攻擊方向物件偵測敵人的距離。")]
+    [Tooltip("以攻擊方向物件為中心的圓形攻擊範圍半徑。")]
     [SerializeField, Min(0.01f)] private float attackRange = 2f;
-    [Tooltip("攻擊判定的寬度。")]
-    [SerializeField, Min(0.01f)] private float attackRadius = 0.5f;
-    [Tooltip("可被攻擊的圖層。")]
-    [SerializeField] private LayerMask targetLayers = ~0;
     [SerializeField, Min(0f)] private float attackCooldown = 0.35f;
-    [SerializeField] private QueryTriggerInteraction triggerInteraction = QueryTriggerInteraction.Ignore;
 
-    private readonly RaycastHit[] attackHits = new RaycastHit[16];
-    private readonly HashSet<EnemyController> hitEnemies = new HashSet<EnemyController>();
     private float nextAttackTime;
 
     private void Awake()
@@ -69,35 +61,19 @@ public class PlayerAttack : MonoBehaviour
         }
 
         nextAttackTime = Time.time + attackCooldown;
-        hitEnemies.Clear();
-
         Vector3 origin = attackDirection.position;
-        Vector3 direction = attackDirection.forward;
-        int hitCount = Physics.SphereCastNonAlloc(
-            origin,
-            attackRadius,
-            direction,
-            attackHits,
-            attackRange,
-            targetLayers,
-            triggerInteraction);
-
-        for (int i = 0; i < hitCount; i++)
+        EnemyController[] enemies = FindObjectsByType<EnemyController>(FindObjectsSortMode.None);
+        foreach (EnemyController enemy in enemies)
         {
-            Collider hitCollider = attackHits[i].collider;
-            if (hitCollider == null || hitCollider.transform.root == transform.root)
+            if (enemy == null || enemy.transform.root == transform.root)
             {
                 continue;
             }
 
-            EnemyController enemy = hitCollider.GetComponentInParent<EnemyController>();
-            if (enemy != null && hitEnemies.Add(enemy))
-            {
-                enemy.TakeDamage(attackDamage, hitCollider);
-            }
+            enemy.TryReceivePlayerAttack(attackDamage, origin, attackRange);
         }
 
-        Debug.Log("【攻擊系統】已依指定攻擊方向發動攻擊。", this);
+        Debug.Log("【攻擊系統】已使用圓形範圍發動攻擊。", this);
     }
 
     private void OnDrawGizmosSelected()
@@ -109,9 +85,6 @@ public class PlayerAttack : MonoBehaviour
         }
 
         Vector3 origin = attackDirection.position;
-        Vector3 direction = attackDirection.forward;
-        Gizmos.DrawWireSphere(origin, attackRadius);
-        Gizmos.DrawWireSphere(origin + direction * attackRange, attackRadius);
-        Gizmos.DrawLine(origin, origin + direction * attackRange);
+        Gizmos.DrawWireSphere(origin, attackRange);
     }
 }
