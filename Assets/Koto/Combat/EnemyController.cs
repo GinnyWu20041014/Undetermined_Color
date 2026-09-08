@@ -84,10 +84,12 @@ public class EnemyController : MonoBehaviour
 
     private int entityHealth;
     private int bodyHealth;
+    private const float AttackInterval = 1f;
     private bool entityDefeated;
     private bool hasFriendlyMoveTarget;
     private Vector3 friendlyMoveTarget;
     private Vector3 revivePosition;
+    private float nextAttackTime;
     private SpriteRenderer entityRenderer;
     private Sprite entityOriginalSprite;
     private Quaternion entityOriginalLocalRotation;
@@ -128,9 +130,24 @@ public class EnemyController : MonoBehaviour
             return;
         }
 
-        float playerDistance = GetHorizontalDistance(player.position);
-        if (playerDistance > playerDetectionRange || playerDistance <= attackRange)
+        PlayerHealth playerHealth = GetPlayerHealth();
+        if (playerHealth != null && playerHealth.IsDead)
         {
+            WanderInsideAreas();
+            return;
+        }
+
+        float playerDistance = GetHorizontalDistance(player.position);
+        if (playerDistance > playerDetectionRange)
+        {
+            // 玩家離開偵測範圍後，先返回最近移動區域；已在區域內則繼續隨機行走。
+            WanderInsideAreas();
+            return;
+        }
+
+        if (playerHealth != null && playerHealth.IsInsideEnemyAttackRange(transform.position, attackRange))
+        {
+            AttackPlayer(playerHealth);
             return;
         }
 
@@ -188,6 +205,31 @@ public class EnemyController : MonoBehaviour
             currentPosition,
             targetPosition,
             moveSpeed * Time.deltaTime);
+    }
+
+    private PlayerHealth GetPlayerHealth()
+    {
+        PlayerHealth playerHealth = player.GetComponentInParent<PlayerHealth>();
+        if (playerHealth == null)
+        {
+            playerHealth = player.gameObject.AddComponent<PlayerHealth>();
+        }
+
+        return playerHealth;
+    }
+
+    private void AttackPlayer(PlayerHealth playerHealth)
+    {
+        if (Time.time < nextAttackTime)
+        {
+            return;
+        }
+
+        nextAttackTime = Time.time + AttackInterval;
+        if (playerHealth.TryReceiveEnemyAttack(attackPower, transform.position, attackRange))
+        {
+            Debug.Log("【敵人】玩家進入攻擊範圍，敵人停止追擊並攻擊玩家。", this);
+        }
     }
 
     private float GetHorizontalDistance(Vector3 targetPosition)

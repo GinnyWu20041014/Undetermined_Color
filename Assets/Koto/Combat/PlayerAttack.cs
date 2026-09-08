@@ -30,6 +30,11 @@ public class PlayerAttack : MonoBehaviour
         {
             scanningSystem = GetComponent<ScanningSystem>();
         }
+
+        if (GetComponent<PlayerHealth>() == null)
+        {
+            gameObject.AddComponent<PlayerHealth>();
+        }
     }
 
     private void Update()
