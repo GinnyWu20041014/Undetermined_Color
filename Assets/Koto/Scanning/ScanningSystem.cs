@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -37,9 +38,9 @@ public class ScanningSystem : MonoBehaviour
     [Tooltip("遮罩的 UI 顯示層級；掃描文字所在 Canvas 的排序值需高於此數值。")]
     [SerializeField] private int maskSortingOrder = 100;
 
-    [Header("掃描專用文字")]
-    [Tooltip("將物件上的文字或文字根物件拖入此處；只有掃描模式時才會顯示。")]
-    [SerializeField] private GameObject[] scanOnlyTextObjects = System.Array.Empty<GameObject>();
+    [Header("掃描顯示物件 Tag")]
+    [Tooltip("可增加多個 Tag。帶有這些 Tag 的物件只會在掃描模式中顯示。")]
+    [SerializeField] private List<string> scanRevealTags = new List<string>();
 
     /// <summary>玩家目前是否處於掃描模式。</summary>
     public bool IsScanning { get; private set; }
@@ -51,6 +52,7 @@ public class ScanningSystem : MonoBehaviour
     private bool isRingAnimating;
     private bool isContracting;
     private readonly RaycastHit[] surfaceHits = new RaycastHit[16];
+    private readonly HashSet<GameObject> scanRevealObjects = new HashSet<GameObject>();
 
     private void Awake()
     {
@@ -198,17 +200,53 @@ public class ScanningSystem : MonoBehaviour
             scanMaskObject.SetActive(visible);
         }
 
-        if (scanOnlyTextObjects == null)
+        RefreshScanRevealObjects();
+        foreach (GameObject scanRevealObject in scanRevealObjects)
+        {
+            if (scanRevealObject != null)
+            {
+                scanRevealObject.SetActive(visible);
+            }
+        }
+    }
+
+    private void RefreshScanRevealObjects()
+    {
+        scanRevealObjects.Clear();
+        if (scanRevealTags == null)
         {
             return;
         }
 
-        foreach (GameObject textObject in scanOnlyTextObjects)
+        foreach (string tag in scanRevealTags)
         {
-            if (textObject != null)
+            if (string.IsNullOrWhiteSpace(tag) || !IsTagDefined(tag))
             {
-                textObject.SetActive(visible);
+                continue;
             }
+
+            // 可搜尋到場景中已隱藏的物件，讓退出掃描後仍可在下次掃描時重新顯示。
+            foreach (GameObject candidate in Resources.FindObjectsOfTypeAll<GameObject>())
+            {
+                if (candidate.scene.IsValid() && candidate.CompareTag(tag))
+                {
+                    scanRevealObjects.Add(candidate);
+                }
+            }
+        }
+    }
+
+    private bool IsTagDefined(string tag)
+    {
+        try
+        {
+            GameObject.FindGameObjectsWithTag(tag);
+            return true;
+        }
+        catch (UnityException)
+        {
+            Debug.LogWarning($"【掃描系統】找不到 Tag：{tag}。請先在 Unity 的 Tags 新增它。", this);
+            return false;
         }
     }
 

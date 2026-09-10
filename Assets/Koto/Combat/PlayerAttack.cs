@@ -24,6 +24,9 @@ public class PlayerAttack : MonoBehaviour
 
     private float nextAttackTime;
 
+    /// <summary>提供其他玩家系統使用與攻擊相同的圓形範圍半徑。</summary>
+    public float AttackRange => attackRange;
+
     private void Awake()
     {
         if (scanningSystem == null)
