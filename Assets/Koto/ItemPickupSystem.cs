@@ -23,6 +23,15 @@ public class ItemPickupSystem : MonoBehaviour
     [Tooltip("可被撿取的地圖物件必須使用此 Tag；預設為 item。")]
     [SerializeField] private string itemTag = "item";
 
+    [Header("放置設定")]
+    [InspectorName("放置按鍵")]
+    [Tooltip("按下此按鍵，將最先撿取的物品放置到範圍內最近的放置目標。")]
+    [SerializeField] private KeyCode placementKey = KeyCode.Q;
+
+    [InspectorName("放置目標 Tag")]
+    [Tooltip("可放置物品的目標物件必須使用此 Tag。")]
+    [SerializeField] private string placementTargetTag = "placementTarget";
+
     [Header("Canvas 三個物品格")]
     [InspectorName("第一格 Image")]
     [Tooltip("第一個撿取物品要顯示的 UI Image。")]
@@ -36,7 +45,7 @@ public class ItemPickupSystem : MonoBehaviour
     [Tooltip("第三個撿取物品要顯示的 UI Image。")]
     [SerializeField] private Image thirdSlotImage = null;
 
-    private int nextSlotIndex;
+    private readonly GameObject[] pickedItems = new GameObject[3];
 
     private void Awake()
     {
@@ -57,6 +66,11 @@ public class ItemPickupSystem : MonoBehaviour
         {
             TryPickupNearestItem();
         }
+
+        if (Input.GetKeyDown(placementKey))
+        {
+            TryPlaceFirstItem();
+        }
     }
 
     /// <summary>可由 UI 按鈕或其他腳本呼叫的撿取入口。</summary>
@@ -68,8 +82,8 @@ public class ItemPickupSystem : MonoBehaviour
             return;
         }
 
-        Image availableSlot = GetNextAvailableSlot();
-        if (availableSlot == null)
+        int availableSlotIndex = GetNextAvailableSlotIndex();
+        if (availableSlotIndex < 0)
         {
             Debug.Log("【撿取系統】三個物品格已滿，無法再撿取。", this);
             return;
@@ -89,63 +103,117 @@ public class ItemPickupSystem : MonoBehaviour
             return;
         }
 
+        Image availableSlot = GetSlots()[availableSlotIndex];
         availableSlot.sprite = itemSprite;
         availableSlot.preserveAspect = true;
         availableSlot.gameObject.SetActive(true);
-        nextSlotIndex++;
+        pickedItems[availableSlotIndex] = nearestItem;
 
         nearestItem.SetActive(false);
-        Debug.Log($"【撿取系統】已撿取：{nearestItem.name}，已放入第 {nextSlotIndex} 格。", this);
+        Debug.Log($"【撿取系統】已撿取：{nearestItem.name}，已放入第 {availableSlotIndex + 1} 格。", this);
+    }
+
+    /// <summary>將最先撿取、尚未放置的物品放到範圍內最近的指定 Tag 目標。</summary>
+    public void TryPlaceFirstItem()
+    {
+        int pickedSlotIndex = GetFirstPickedSlotIndex();
+        if (pickedSlotIndex < 0)
+        {
+            Debug.Log("【撿取系統】目前沒有可放置的物品。", this);
+            return;
+        }
+
+        GameObject placementTarget = FindNearestTaggedObject(placementTargetTag);
+        if (placementTarget == null)
+        {
+            Debug.Log($"【撿取系統】攻擊範圍內找不到 Tag 為「{placementTargetTag}」的放置目標。", this);
+            return;
+        }
+
+        GameObject item = pickedItems[pickedSlotIndex];
+        item.transform.position = placementTarget.transform.position;
+        item.SetActive(true);
+
+        Image itemSlot = GetSlots()[pickedSlotIndex];
+        itemSlot.sprite = null;
+        pickedItems[pickedSlotIndex] = null;
+        Debug.Log($"【撿取系統】已將 {item.name} 放置到：{placementTarget.name}。", this);
     }
 
     private GameObject FindNearestItem()
     {
-        if (string.IsNullOrWhiteSpace(itemTag))
+        return FindNearestTaggedObject(itemTag);
+    }
+
+    private GameObject FindNearestTaggedObject(string targetTag)
+    {
+        if (string.IsNullOrWhiteSpace(targetTag))
         {
             return null;
         }
 
-        GameObject[] items;
+        GameObject[] taggedObjects;
         try
         {
-            items = GameObject.FindGameObjectsWithTag(itemTag);
+            taggedObjects = GameObject.FindGameObjectsWithTag(targetTag);
         }
         catch (UnityException)
         {
-            Debug.LogWarning($"【撿取系統】找不到 Tag：{itemTag}。請先在 Unity 的 Tags 新增它。", this);
+            Debug.LogWarning($"【撿取系統】找不到 Tag：{targetTag}。請先在 Unity 的 Tags 新增它。", this);
             return null;
         }
 
-        GameObject nearestItem = null;
-        float pickupRange = GetPickupRange();
-        float nearestDistanceSquared = pickupRange * pickupRange;
-        foreach (GameObject item in items)
+        GameObject nearestObject = null;
+        float interactionRange = GetInteractionRange();
+        float nearestDistanceSquared = interactionRange * interactionRange;
+        foreach (GameObject taggedObject in taggedObjects)
         {
-            Vector3 offset = item.transform.position - transform.position;
+            Vector3 offset = taggedObject.transform.position - transform.position;
             offset.y = 0f;
             float distanceSquared = offset.sqrMagnitude;
             if (distanceSquared <= nearestDistanceSquared)
             {
                 nearestDistanceSquared = distanceSquared;
-                nearestItem = item;
+                nearestObject = taggedObject;
             }
         }
 
-        return nearestItem;
+        return nearestObject;
     }
 
-    private Image GetNextAvailableSlot()
+    private Image[] GetSlots()
     {
-        Image[] slots = { firstSlotImage, secondSlotImage, thirdSlotImage };
-        while (nextSlotIndex < slots.Length && slots[nextSlotIndex] == null)
+        return new[] { firstSlotImage, secondSlotImage, thirdSlotImage };
+    }
+
+    private int GetNextAvailableSlotIndex()
+    {
+        Image[] slots = GetSlots();
+        for (int slotIndex = 0; slotIndex < slots.Length; slotIndex++)
         {
-            nextSlotIndex++;
+            if (slots[slotIndex] != null && pickedItems[slotIndex] == null)
+            {
+                return slotIndex;
+            }
         }
 
-        return nextSlotIndex < slots.Length ? slots[nextSlotIndex] : null;
+        return -1;
     }
 
-    private float GetPickupRange()
+    private int GetFirstPickedSlotIndex()
+    {
+        for (int slotIndex = 0; slotIndex < pickedItems.Length; slotIndex++)
+        {
+            if (pickedItems[slotIndex] != null)
+            {
+                return slotIndex;
+            }
+        }
+
+        return -1;
+    }
+
+    private float GetInteractionRange()
     {
         return playerAttack != null ? playerAttack.AttackRange : 0f;
     }
@@ -165,6 +233,6 @@ public class ItemPickupSystem : MonoBehaviour
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.cyan;
-        Gizmos.DrawWireSphere(transform.position, GetPickupRange());
+        Gizmos.DrawWireSphere(transform.position, GetInteractionRange());
     }
 }
