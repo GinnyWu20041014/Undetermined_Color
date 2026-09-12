@@ -109,6 +109,7 @@ public class ItemPickupSystem : MonoBehaviour
         availableSlot.gameObject.SetActive(true);
         pickedItems[availableSlotIndex] = nearestItem;
 
+        NotifyItemPickedUp(nearestItem);
         nearestItem.SetActive(false);
         Debug.Log($"【撿取系統】已撿取：{nearestItem.name}，已放入第 {availableSlotIndex + 1} 格。", this);
     }
@@ -133,6 +134,7 @@ public class ItemPickupSystem : MonoBehaviour
         GameObject item = pickedItems[pickedSlotIndex];
         item.transform.position = placementTarget.transform.position;
         item.SetActive(true);
+        NotifyItemPlaced(item, placementTarget);
 
         Image itemSlot = GetSlots()[pickedSlotIndex];
         itemSlot.sprite = null;
@@ -228,6 +230,28 @@ public class ItemPickupSystem : MonoBehaviour
 
         Image image = item.GetComponentInChildren<Image>(true);
         return image != null ? image.sprite : null;
+    }
+
+    private static void NotifyItemPlaced(GameObject item, GameObject placementTarget)
+    {
+        foreach (MonoBehaviour component in item.GetComponentsInChildren<MonoBehaviour>(true))
+        {
+            if (component is IItemPlacementListener listener)
+            {
+                listener.OnItemPlaced(placementTarget);
+            }
+        }
+    }
+
+    private static void NotifyItemPickedUp(GameObject item)
+    {
+        foreach (MonoBehaviour component in item.GetComponentsInChildren<MonoBehaviour>(true))
+        {
+            if (component is IItemPlacementListener listener)
+            {
+                listener.OnItemPickedUp();
+            }
+        }
     }
 
     private void OnDrawGizmosSelected()

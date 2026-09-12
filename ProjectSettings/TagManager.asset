@@ -8,6 +8,7 @@ TagManager:
   - item
   - Screen Vocal
   - placementTarget
+  - Machine
   layers:
   - Default
   - TransparentFX
