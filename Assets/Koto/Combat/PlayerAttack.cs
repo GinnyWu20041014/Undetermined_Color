@@ -70,8 +70,8 @@ public class PlayerAttack : MonoBehaviour
 
         nextAttackTime = Time.time + attackCooldown;
         Vector3 origin = attackDirection.position;
-        EnemyController[] enemies = FindObjectsByType<EnemyController>(FindObjectsSortMode.None);
-        foreach (EnemyController enemy in enemies)
+        EnemyStateHealth[] enemies = FindObjectsByType<EnemyStateHealth>(FindObjectsSortMode.None);
+        foreach (EnemyStateHealth enemy in enemies)
         {
             if (enemy == null || enemy.transform.root == transform.root)
             {
