@@ -195,10 +195,16 @@ public sealed class EnemyPlayerAttackController : MonoBehaviour
             return false;
         }
 
-        if (!HasAnyValidBone(entityAttackBones) || animations == null || !animations.TryPlayEntityAttack())
+        if (animations == null || !animations.TryPlayEntityAttack())
         {
             WarnMissingEntityAttackSetup();
             return false;
+        }
+
+        // 骨架尚未指定時仍允許播放攻擊動畫，只是不會造成命中傷害。
+        if (!HasAnyValidBone(entityAttackBones))
+        {
+            WarnMissingEntityAttackSetup();
         }
 
         entityAttackRoutine = StartCoroutine(EntityAttackRoutine());
@@ -213,10 +219,16 @@ public sealed class EnemyPlayerAttackController : MonoBehaviour
             return false;
         }
 
-        if (isBodyAttacking || !HasAnyValidBone(bodyAttackBones) || animations == null || !animations.TryPlayBodyAttack())
+        if (isBodyAttacking || animations == null || !animations.TryPlayBodyAttack())
         {
             WarnMissingBodyAttackSetup();
             return false;
+        }
+
+        // 骨架尚未指定時仍允許播放攻擊動畫，只是不會造成命中傷害。
+        if (!HasAnyValidBone(bodyAttackBones))
+        {
+            WarnMissingBodyAttackSetup();
         }
 
         bodyAttackRoutine = StartCoroutine(BodyAttackRoutine());
@@ -424,7 +436,7 @@ public sealed class EnemyPlayerAttackController : MonoBehaviour
             return;
         }
 
-        Debug.LogWarning("【敵人】實體攻擊需要指定 Animator、攻擊狀態與至少一個「實體攻擊骨架」。", this);
+        Debug.LogWarning("【敵人】實體攻擊骨架尚未指定；攻擊動畫會播放，但不會對玩家造成命中傷害。", this);
         hasWarnedMissingEntitySetup = true;
     }
 
@@ -435,7 +447,7 @@ public sealed class EnemyPlayerAttackController : MonoBehaviour
             return;
         }
 
-        Debug.LogWarning("【敵人】影紋攻擊需要指定 Animator、攻擊狀態與至少一個「影紋攻擊骨架」。", this);
+        Debug.LogWarning("【敵人】影紋攻擊骨架尚未指定；攻擊動畫會播放，但不會對玩家造成命中傷害。", this);
         hasWarnedMissingBodySetup = true;
     }
 

@@ -67,6 +67,27 @@ public sealed class EnemyAnimationController : MonoBehaviour
     [Tooltip("放入影紋／本體的攻擊動畫片段，用來計算攻擊與骨架命中區間。")]
     [SerializeField] private AnimationClip bodyAttackAnimationClip = null;
 
+    [Header("Animator 參數")]
+    [InspectorName("實體移動參數名稱")]
+    [Tooltip("Enemy2 Animator 內控制走路的 Bool 參數。目前控制器使用 isMoving。若找不到此參數才會改用上方狀態名稱。")]
+    [SerializeField] private string entityMovingBoolParameterName = "isMoving";
+
+    [InspectorName("實體攻擊參數名稱")]
+    [Tooltip("Enemy2 Animator 內播放攻擊的 Trigger 參數。目前控制器使用 attack。")]
+    [SerializeField] private string entityAttackTriggerParameterName = "attack";
+
+    [InspectorName("實體召喚參數名稱")]
+    [Tooltip("Enemy2 Animator 內播放召喚的 Trigger 參數。目前控制器使用 call。")]
+    [SerializeField] private string entitySummonTriggerParameterName = "call";
+
+    [InspectorName("實體顯示影紋參數名稱")]
+    [Tooltip("Enemy2 Animator 內切換影紋待機的 Bool 參數。目前控制器使用 hasMonster。")]
+    [SerializeField] private string entityHasBodyBoolParameterName = "hasMonster";
+
+    [InspectorName("影紋攻擊參數名稱")]
+    [Tooltip("可填 moster2 Animator 的 attack1 或 attack2 Trigger。留空時會自動採用影紋攻擊狀態名稱的最後一段。")]
+    [SerializeField] private string bodyAttackTriggerParameterName = "";
+
     [Header("整體視覺翻轉")]
     [InspectorName("視覺整體")]
     [Tooltip("放入同時包含實體、影紋與兩者骨架的共同父物件。移動時只翻轉此物件，不翻轉碰撞與移動根物件。")]
@@ -160,6 +181,7 @@ public sealed class EnemyAnimationController : MonoBehaviour
     {
         CancelAllSummons(false);
         SetActive(body, false);
+        SetEntityHasBodyParameter(false);
         bodyWasVisible = false;
         hasBodyAnimationState = false;
     }
@@ -183,12 +205,50 @@ public sealed class EnemyAnimationController : MonoBehaviour
 
     public bool TryPlayEntityAttack()
     {
-        return !IsSummoning && PlayEntityAnimatorState(entityAttackAnimationStateName, "實體攻擊", true, true);
+        if (IsSummoning)
+        {
+            return false;
+        }
+
+        // Enemy2 已改為參數驅動；攻擊前先清除移動，避免一邊走一邊攻擊。
+        TrySetBoolParameter(entityAttackAnimator, entityMovingBoolParameterName, false);
+        // 一次性動畫優先直接進入狀態，避免 Animator Transition 的 Exit Time 延遲攻擊。
+        if (PlayEntityAnimatorState(entityAttackAnimationStateName, "實體攻擊", true, false))
+        {
+            return true;
+        }
+
+        if (TrySetTriggerParameter(entityAttackAnimator, entityAttackTriggerParameterName))
+        {
+            hasEntityAnimationState = false;
+            return true;
+        }
+
+        return PlayEntityAnimatorState(entityAttackAnimationStateName, "實體攻擊", true, true);
     }
 
     public bool TryPlayBodyAttack()
     {
-        return !IsSummoning && PlayBodyAnimatorState(bodyAttackAnimationStateName, "影紋攻擊", true, true);
+        if (IsSummoning)
+        {
+            return false;
+        }
+
+        string triggerName = string.IsNullOrWhiteSpace(bodyAttackTriggerParameterName)
+            ? GetShortStateName(bodyAttackAnimationStateName)
+            : bodyAttackTriggerParameterName;
+        if (PlayBodyAnimatorState(bodyAttackAnimationStateName, "影紋攻擊", true, false))
+        {
+            return true;
+        }
+
+        if (TrySetTriggerParameter(bodyAttackAnimator, triggerName))
+        {
+            hasBodyAnimationState = false;
+            return true;
+        }
+
+        return PlayBodyAnimatorState(bodyAttackAnimationStateName, "影紋攻擊", true, true);
     }
 
     private void UpdateVisualFacing(Vector3 actualDelta)
@@ -217,12 +277,24 @@ public sealed class EnemyAnimationController : MonoBehaviour
     {
         // 光線剛照到時，中斷既有揮擊，讓兩個 call 動畫能從第 0 秒完整播放。
         combat?.CancelAllAttacks(false);
+        SetEntityHasBodyParameter(true);
 
+        // 召喚屬於一次性動畫，直接從第 0 秒播放；名稱找不到時才退回 Trigger。
         bool entitySummonStarted = PlayEntityAnimatorState(
             entitySummonAnimationStateName,
             "實體召喚",
             true,
-            true);
+            false);
+        if (!entitySummonStarted)
+        {
+            entitySummonStarted = TrySetTriggerParameter(
+                entityAttackAnimator,
+                entitySummonTriggerParameterName);
+        }
+        if (!entitySummonStarted)
+        {
+            entitySummonStarted = PlayEntityAnimatorState(entitySummonAnimationStateName, "實體召喚", true, true);
+        }
         if (entitySummonStarted)
         {
             isEntitySummoning = true;
@@ -439,7 +511,8 @@ public sealed class EnemyAnimationController : MonoBehaviour
             return true;
         }
 
-        animator.Play(stateHash, 0, 0f);
+        // 短暫混合可避免姿勢瞬間跳動，同時保證一次性動畫從頭開始。
+        animator.CrossFadeInFixedTime(stateHash, 0.05f, 0, 0f);
         lastStateHash = stateHash;
         hasLastState = true;
         return true;
@@ -452,9 +525,19 @@ public sealed class EnemyAnimationController : MonoBehaviour
             return;
         }
 
+        SetEntityHasBodyParameter(body != null && body.activeInHierarchy);
+        bool usesMovingParameter = TrySetBoolParameter(entityAttackAnimator, entityMovingBoolParameterName, isMoving);
+        if (usesMovingParameter && isMoving)
+        {
+            // 移動時交由 Animator 參數決定 walk。
+            hasEntityAnimationState = false;
+            return;
+        }
+
         string targetStateName = isMoving
             ? entityWalkAnimationStateName
             : GetEntityIdleAnimationStateName();
+        // 停止移動或一次性動畫結束時直接回到正確待機，避免 attack 固定回到錯誤的待機狀態。
         PlayEntityAnimatorState(targetStateName, "實體待機／移動", false, false);
     }
 
@@ -493,6 +576,7 @@ public sealed class EnemyAnimationController : MonoBehaviour
             combat?.CancelBodyAttack(false);
             CancelAllSummons(false);
             SetActive(body, false);
+            SetEntityHasBodyParameter(false);
             bodyWasVisible = false;
             hasBodyAnimationState = false;
 
@@ -508,6 +592,7 @@ public sealed class EnemyAnimationController : MonoBehaviour
         if (!bodyWasVisible || !body.activeSelf)
         {
             SetActive(body, true);
+            SetEntityHasBodyParameter(true);
             bodyWasVisible = true;
             hasBodyAnimationState = false;
             StartSummonAnimations();
@@ -515,6 +600,67 @@ public sealed class EnemyAnimationController : MonoBehaviour
         }
 
         SetBodyIdleAnimation();
+    }
+
+    private void SetEntityHasBodyParameter(bool hasBody)
+    {
+        TrySetBoolParameter(entityAttackAnimator, entityHasBodyBoolParameterName, hasBody);
+    }
+
+    private static bool TrySetBoolParameter(Animator animator, string parameterName, bool value)
+    {
+        if (!HasAnimatorParameter(animator, parameterName, AnimatorControllerParameterType.Bool))
+        {
+            return false;
+        }
+
+        animator.SetBool(parameterName, value);
+        return true;
+    }
+
+    private static bool TrySetTriggerParameter(Animator animator, string parameterName)
+    {
+        if (!HasAnimatorParameter(animator, parameterName, AnimatorControllerParameterType.Trigger))
+        {
+            return false;
+        }
+
+        animator.ResetTrigger(parameterName);
+        animator.SetTrigger(parameterName);
+        return true;
+    }
+
+    private static bool HasAnimatorParameter(
+        Animator animator,
+        string parameterName,
+        AnimatorControllerParameterType parameterType)
+    {
+        if (animator == null || !animator.isActiveAndEnabled ||
+            animator.runtimeAnimatorController == null || string.IsNullOrWhiteSpace(parameterName))
+        {
+            return false;
+        }
+
+        foreach (AnimatorControllerParameter parameter in animator.parameters)
+        {
+            if (parameter.type == parameterType && parameter.name == parameterName)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static string GetShortStateName(string stateName)
+    {
+        if (string.IsNullOrWhiteSpace(stateName))
+        {
+            return string.Empty;
+        }
+
+        int separatorIndex = stateName.LastIndexOf('.');
+        return separatorIndex >= 0 ? stateName[(separatorIndex + 1)..] : stateName;
     }
 
     private static void SetActive(GameObject targetObject, bool active)
