@@ -149,6 +149,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: -8653719598885068355, guid: a4c2eff5cb5cfb8439644d7cb242d271, type: 3}
       insertIndex: -1
       addedObject: {fileID: 4155348480220286398}
+    - targetCorrespondingSourceObject: {fileID: -8653719598885068355, guid: a4c2eff5cb5cfb8439644d7cb242d271, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6943021110765434821}
   m_SourcePrefab: {fileID: 4843985084834002234, guid: a4c2eff5cb5cfb8439644d7cb242d271, type: 3}
 --- !u!1 &3262242003946971532 stripped
 GameObject:
@@ -251,3 +254,23 @@ MonoBehaviour:
     m_Extent: {x: 0, y: 0, z: 0}
   m_AlwaysUpdate: 1
   m_AutoRebind: 0
+--- !u!114 &6943021110765434821
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3262242003946971532}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f8b3d77a3c864745b4abf208b64b9ce1, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  yuanAnimator: {fileID: 7777669155894404800}
+  playerMovement: {fileID: 0}
+  playerHealth: {fileID: 0}
+  movingParameterName: isMoving
+  deathParameterName: Die
+  idleStateName: Base Layer.stand
+  walkStateName: Base Layer.walk
+  deathStateName: Base Layer.die yuan

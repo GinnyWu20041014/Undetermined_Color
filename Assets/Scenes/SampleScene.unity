@@ -1517,9 +1517,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b9efe0b11d6b0f046bbdfec0123766cc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  moveSpeed: 5
+  moveSpeed: 3
   rb: {fileID: 510363717}
-  animator: {fileID: 510363725}
+  animator: {fileID: 0}
+  movingAnimationParameter: is walking
 --- !u!114 &510363720
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1534,8 +1535,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   maxHealth: 100
   hitRadius: 0.75
-  deathImage: {fileID: 0}
-  postProcessVolume: {fileID: 0}
+  deathImage: {fileID: 1200916792}
+  postProcessVolume: {fileID: 832575518}
   deathVignetteDuration: 0.6
   deathVignetteIntensity: 1
   deathVignetteSmoothness: 0.2
@@ -1563,23 +1564,6 @@ MonoBehaviour:
   attackDamage: 20
   attackRange: 2
   attackCooldown: 0.35
---- !u!114 &510363722
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 510363715}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8a1195cc02b208f459e2b50d4d6429ea, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
---- !u!95 &510363725 stripped
-Animator:
-  m_CorrespondingSourceObject: {fileID: 7777669155894404800, guid: 1ec3135e16473b1419053db0e73ae5b4, type: 3}
-  m_PrefabInstance: {fileID: 666328282}
-  m_PrefabAsset: {fileID: 0}
 --- !u!4 &510363726 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 4435436526537898479, guid: 1ec3135e16473b1419053db0e73ae5b4, type: 3}
@@ -1784,7 +1768,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4435436526537898479, guid: 1ec3135e16473b1419053db0e73ae5b4, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -3.3
+      value: -1.26
       objectReference: {fileID: 0}
     - target: {fileID: 4435436526537898479, guid: 1ec3135e16473b1419053db0e73ae5b4, type: 3}
       propertyPath: m_LocalPosition.y
@@ -1792,7 +1776,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4435436526537898479, guid: 1ec3135e16473b1419053db0e73ae5b4, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -3.82
+      value: -9.86
       objectReference: {fileID: 0}
     - target: {fileID: 4435436526537898479, guid: 1ec3135e16473b1419053db0e73ae5b4, type: 3}
       propertyPath: m_LocalRotation.w
@@ -1822,13 +1806,18 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6943021110765434821, guid: 1ec3135e16473b1419053db0e73ae5b4, type: 3}
+      propertyPath: playerHealth
+      value: 
+      objectReference: {fileID: 510363720}
+    - target: {fileID: 6943021110765434821, guid: 1ec3135e16473b1419053db0e73ae5b4, type: 3}
+      propertyPath: playerMovement
+      value: 
+      objectReference: {fileID: 510363719}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
-    - targetCorrespondingSourceObject: {fileID: 3262242003946971532, guid: 1ec3135e16473b1419053db0e73ae5b4, type: 3}
-      insertIndex: -1
-      addedObject: {fileID: 510363722}
     - targetCorrespondingSourceObject: {fileID: 3262242003946971532, guid: 1ec3135e16473b1419053db0e73ae5b4, type: 3}
       insertIndex: -1
       addedObject: {fileID: 510363721}
@@ -4035,6 +4024,10 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 2034364463}
     - target: {fileID: 5801753373672896940, guid: f788505e94c760c43bdb72b990d8ac80, type: 3}
+      propertyPath: moveSpeed
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5801753373672896940, guid: f788505e94c760c43bdb72b990d8ac80, type: 3}
       propertyPath: 'movementAreas.Array.data[0]'
       value: 
       objectReference: {fileID: 1612098139}
@@ -4061,7 +4054,7 @@ PrefabInstance:
     - target: {fileID: 7570132309655608492, guid: f788505e94c760c43bdb72b990d8ac80, type: 3}
       propertyPath: player
       value: 
-      objectReference: {fileID: 267602395}
+      objectReference: {fileID: 510363726}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
