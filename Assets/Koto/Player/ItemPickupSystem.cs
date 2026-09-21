@@ -170,6 +170,9 @@ public class ItemPickupSystem : MonoBehaviour
         float nearestDistanceSquared = interactionRange * interactionRange;
         foreach (GameObject taggedObject in taggedObjects)
         {
+            StopEcho stopEcho = taggedObject.GetComponentInParent<StopEcho>();
+            if (stopEcho != null && stopEcho.IsConsumed) continue;
+
             Vector3 offset = taggedObject.transform.position - transform.position;
             offset.y = 0f;
             float distanceSquared = offset.sqrMagnitude;
