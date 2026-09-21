@@ -72,7 +72,6 @@ public sealed class EnemyStateHealth : MonoBehaviour
 
     private Sprite entityOriginalSprite;
 
-    private Quaternion entityOriginalLocalRotation;
     private bool initialized;
     private Coroutine reviveRoutine;
 
@@ -101,7 +100,6 @@ public sealed class EnemyStateHealth : MonoBehaviour
         {
             entityRenderer = entity.GetComponent<SpriteRenderer>();
             entityOriginalSprite = entityRenderer != null ? entityRenderer.sprite : null;
-            entityOriginalLocalRotation = entity.transform.localRotation;
         }
         ApplyStatusVisuals();
     }
@@ -148,18 +146,15 @@ public sealed class EnemyStateHealth : MonoBehaviour
     private IEnumerator ReviveEntity()
     {
         revivePosition = transform.position;
-        if (entity != null)
-            entity.transform.localRotation = entityOriginalLocalRotation * Quaternion.Euler(0f, 0f, -90f);
         SetActive(body, false);
-        Debug.Log($"【敵人】實體血量歸零，已旋轉 Z 軸 -90°，將在原地等待 {reviveDelay:0.##} 秒後復活。", this);
+        Debug.Log($"【敵人】實體血量歸零，將在原地等待 {reviveDelay:0.##} 秒後復活。", this);
         yield return new WaitForSeconds(reviveDelay);
         transform.position = revivePosition;
         entityHealth = health;
         entityDefeated = false;
         reviveRoutine = null;
-        if (entity != null) entity.transform.localRotation = entityOriginalLocalRotation;
         Revived?.Invoke();
-        Debug.Log("【敵人】實體已在原地復活，Z 軸角度已恢復並重新開始偵測玩家。", this);
+        Debug.Log("【敵人】實體已在原地復活並重新開始偵測玩家。", this);
     }
 
     private void BecomeFriendly()
@@ -172,7 +167,6 @@ public sealed class EnemyStateHealth : MonoBehaviour
         status = EnemyStatus.友好狀態;
         entityDefeated = false;
         CombatInterrupted?.Invoke();
-        if (entity != null) entity.transform.localRotation = entityOriginalLocalRotation;
         ApplyStatusVisuals();
         SetActive(body, false);
         BecameFriendly?.Invoke();

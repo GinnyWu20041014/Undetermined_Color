@@ -50,6 +50,15 @@ public sealed class EnemyAnimationController : MonoBehaviour
     [Tooltip("放入實體的攻擊動畫片段，用來計算攻擊與骨架命中區間。")]
     [SerializeField, FormerlySerializedAs("attackAnimationClip")] private AnimationClip entityAttackAnimationClip = null;
 
+    [Header("實體死亡動畫")]
+    [InspectorName("實體死亡動畫狀態名稱")]
+    [Tooltip("實體血量歸零時播放的完整 Animator 狀態名稱。Enemy2 預設為 Base Layer.die enemy2。")]
+    [SerializeField] private string entityDeathAnimationStateName = "Base Layer.die enemy2";
+
+    [InspectorName("實體死亡參數名稱")]
+    [Tooltip("實體 Animator 內播放死亡動畫的 Trigger 參數。Enemy2 預設為 Die。")]
+    [SerializeField] private string entityDeathTriggerParameterName = "Die";
+
     [Header("影紋／本體攻擊骨架")]
     [InspectorName("影紋攻擊動畫控制器")]
     [Tooltip("放入影紋／本體實際播放攻擊動畫的 Animator。僅在影紋受光顯示時使用。")]
@@ -190,6 +199,11 @@ public sealed class EnemyAnimationController : MonoBehaviour
         SetEntityHasBodyParameter(false);
         bodyWasVisible = false;
         hasBodyAnimationState = false;
+
+        if (state != null && state.IsEntityDefeated)
+        {
+            PlayEntityDeathAnimation();
+        }
     }
 
     private void OnRevived()
@@ -231,6 +245,37 @@ public sealed class EnemyAnimationController : MonoBehaviour
         }
 
         return PlayEntityAnimatorState(entityAttackAnimationStateName, "實體攻擊", true, true);
+    }
+
+    /// <summary>實體血量歸零時播放死亡動畫，直到狀態血量元件完成復活。</summary>
+    public bool PlayEntityDeathAnimation()
+    {
+        if (entityAttackAnimator == null || !entityAttackAnimator.isActiveAndEnabled)
+        {
+            Debug.LogWarning("【敵人】無法播放實體死亡動畫：尚未指定或啟用實體攻擊動畫控制器。", this);
+            return false;
+        }
+
+        TrySetBoolParameter(entityAttackAnimator, entityMovingBoolParameterName, false);
+
+        // 優先直接播放指定狀態，避免死亡動畫受到其他轉場條件或 Exit Time 延遲。
+        if (PlayEntityAnimatorState(entityDeathAnimationStateName, "實體死亡", true, false))
+        {
+            Debug.Log("【敵人】實體血量歸零，已播放實體死亡動畫。", this);
+            return true;
+        }
+
+        if (TrySetTriggerParameter(entityAttackAnimator, entityDeathTriggerParameterName))
+        {
+            hasEntityAnimationState = false;
+            Debug.Log("【敵人】實體血量歸零，已觸發實體死亡動畫。", this);
+            return true;
+        }
+
+        Debug.LogWarning(
+            $"【敵人】無法播放實體死亡動畫，請確認狀態「{entityDeathAnimationStateName}」或 Trigger「{entityDeathTriggerParameterName}」。",
+            this);
+        return false;
     }
 
     public bool TryPlayBodyAttack()
@@ -526,7 +571,8 @@ public sealed class EnemyAnimationController : MonoBehaviour
 
     public void SetEntityLocomotionAnimation(bool isMoving)
     {
-        if (isEntityAttacking || isEntitySummoning || entityAttackAnimator == null)
+        if (isEntityAttacking || isEntitySummoning ||
+            (state != null && state.IsEntityDefeated) || entityAttackAnimator == null)
         {
             return;
         }
