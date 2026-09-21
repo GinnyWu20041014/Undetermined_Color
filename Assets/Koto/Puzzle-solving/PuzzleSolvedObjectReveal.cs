@@ -1,8 +1,7 @@
 using UnityEngine;
 
-/// <summary>依照路燈解謎目前結果顯示或隱藏指定物件。</summary>
+/// <summary>依照路燈或雙門解謎目前結果顯示或隱藏指定物件。</summary>
 [DisallowMultipleComponent]
-[RequireComponent(typeof(StreetLampPuzzleController))]
 [AddComponentMenu("Koto/Puzzle/解謎成功顯示物件")]
 public sealed class PuzzleSolvedObjectReveal : MonoBehaviour
 {
@@ -11,10 +10,12 @@ public sealed class PuzzleSolvedObjectReveal : MonoBehaviour
     [SerializeField] private GameObject objectToReveal = null;
 
     private StreetLampPuzzleController puzzleController;
+    private DualDoorPuzzleController doorPuzzleController;
 
     private void Awake()
     {
         puzzleController = GetComponent<StreetLampPuzzleController>();
+        doorPuzzleController = GetComponent<DualDoorPuzzleController>();
         SetObjectVisible(false);
     }
 
@@ -25,18 +26,25 @@ public sealed class PuzzleSolvedObjectReveal : MonoBehaviour
             puzzleController = GetComponent<StreetLampPuzzleController>();
         }
 
+        if (doorPuzzleController == null)
+        {
+            doorPuzzleController = GetComponent<DualDoorPuzzleController>();
+        }
+
         if (puzzleController != null)
         {
             puzzleController.PuzzleStateChanged += HandlePuzzleStateChanged;
+        }
+
+        if (doorPuzzleController != null)
+        {
+            doorPuzzleController.PuzzleStateChanged += HandlePuzzleStateChanged;
         }
     }
 
     private void Start()
     {
-        if (puzzleController != null && puzzleController.IsSolved)
-        {
-            SetObjectVisible(true);
-        }
+        RefreshObjectVisibility();
     }
 
     private void OnDisable()
@@ -45,11 +53,22 @@ public sealed class PuzzleSolvedObjectReveal : MonoBehaviour
         {
             puzzleController.PuzzleStateChanged -= HandlePuzzleStateChanged;
         }
+        if (doorPuzzleController != null)
+        {
+            doorPuzzleController.PuzzleStateChanged -= HandlePuzzleStateChanged;
+        }
     }
 
     private void HandlePuzzleStateChanged(bool isSolved)
     {
-        SetObjectVisible(isSolved);
+        RefreshObjectVisibility();
+    }
+
+    private void RefreshObjectVisibility()
+    {
+        bool solved = (puzzleController != null && puzzleController.IsSolved) ||
+                      (doorPuzzleController != null && doorPuzzleController.IsSolved);
+        SetObjectVisible(solved);
     }
 
     private void SetObjectVisible(bool visible)

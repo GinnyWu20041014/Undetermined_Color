@@ -23,11 +23,16 @@ public class MechanismStateController : MonoBehaviour
 
     private readonly HashSet<UnityEngine.Object> pauseRequesters = new HashSet<UnityEngine.Object>();
 
+    private bool isPermanentlyStopped;
+
     /// <summary>機關原本設定的運行／停止狀態。</summary>
     public MechanismOperationState CurrentState => currentState;
 
     /// <summary>機關目前是否被一個或多個等待回響暫停。</summary>
     public bool IsPaused => pauseRequesters.Count > 0;
+
+    /// <summary>是否已被停止回想永久固定；固定後不再接受任何狀態切換。</summary>
+    public bool IsPermanentlyStopped => isPermanentlyStopped;
 
     /// <summary>機關目前實際套用的狀態；暫停期間視為停止。</summary>
     public MechanismOperationState AppliedState => IsPaused
@@ -59,6 +64,11 @@ public class MechanismStateController : MonoBehaviour
     /// <summary>設定機關原本狀態並通知已連結的路燈。</summary>
     public void SetMechanismState(MechanismOperationState state)
     {
+        if (isPermanentlyStopped)
+        {
+            return;
+        }
+
         currentState = state;
         NotifyStateChanged();
 
@@ -71,7 +81,7 @@ public class MechanismStateController : MonoBehaviour
     /// <summary>由等待回響暫停機關，並保留原本運行／停止狀態。</summary>
     public void PauseMechanism(UnityEngine.Object requester)
     {
-        if (requester == null || !pauseRequesters.Add(requester))
+        if (isPermanentlyStopped || requester == null || !pauseRequesters.Add(requester))
         {
             return;
         }
@@ -96,6 +106,21 @@ public class MechanismStateController : MonoBehaviour
             NotifyStateChanged();
             Debug.Log($"【機關狀態】等待回響已取回，恢復為：{currentState}。", this);
         }
+    }
+
+    /// <summary>由停止回想永久停止機關，保留呼叫當下的狀態且之後不再恢復。</summary>
+    public void StopMechanismPermanently(UnityEngine.Object requester)
+    {
+        if (isPermanentlyStopped)
+        {
+            return;
+        }
+
+        isPermanentlyStopped = true;
+        pauseRequesters.Clear();
+        NotifyStateChanged();
+        string requesterName = requester != null ? requester.name : "停止回想";
+        Debug.Log($"【機關狀態】已由「{requesterName}」永久停止，狀態固定為：{currentState}。", this);
     }
 
     /// <summary>再次通知目前狀態。可供 Unity Event 或其他腳本手動呼叫。</summary>

@@ -16,11 +16,12 @@ public class WaitEcho : MonoBehaviour, IItemPlacementListener
 {
     [Header("機關搜尋")]
     [InspectorName("機關作用範圍")]
-    [Tooltip("放下回響後，若放置目標沒有機關控制器，會在此範圍內選取最近的一個機關。")]
+    [Tooltip("放下回響後，若放置目標沒有解謎門或機關控制器，會在此範圍內選取最近的目標。")]
     [Min(0.01f)]
     [SerializeField] private float mechanismSearchRange = 2f;
 
     private MechanismStateController pausedMechanism = null;
+    private PuzzleDoor heldDoor = null;
     private bool isWaiting;
 
     /// <summary>由物品放置系統呼叫；會選取放置位置對應的一個機關。</summary>
@@ -56,8 +57,13 @@ public class WaitEcho : MonoBehaviour, IItemPlacementListener
         {
             pausedMechanism.ResumeMechanism(this);
         }
+        if (heldDoor != null)
+        {
+            heldDoor.ReleaseDoor(this);
+        }
 
         pausedMechanism = null;
+        heldDoor = null;
         isWaiting = false;
         Debug.Log("【等待回響】回響已取回，機關已恢復原本狀態。", this);
     }
@@ -69,7 +75,27 @@ public class WaitEcho : MonoBehaviour, IItemPlacementListener
             return;
         }
 
-        pausedMechanism = FindTargetMechanism(position, placementTarget);
+        heldDoor = FindDoorOnPlacementTarget(placementTarget);
+        pausedMechanism = heldDoor == null
+            ? FindControllerOnPlacementTarget(placementTarget)
+            : null;
+        if (heldDoor == null && pausedMechanism == null)
+        {
+            heldDoor = FindNearestDoor(position);
+        }
+
+        if (heldDoor != null)
+        {
+            heldDoor.HoldDoor(this);
+            isWaiting = true;
+            Debug.Log($"【等待回想】已固定解謎門：{heldDoor.name}。", this);
+            return;
+        }
+
+        if (pausedMechanism == null)
+        {
+            pausedMechanism = FindNearestMechanism(position);
+        }
         if (pausedMechanism == null)
         {
             Debug.LogWarning("【等待回響】放置位置附近找不到可作用的機關。", this);
@@ -81,12 +107,53 @@ public class WaitEcho : MonoBehaviour, IItemPlacementListener
         Debug.Log($"【等待回響】已作用於機關：{pausedMechanism.name}。", this);
     }
 
-    private MechanismStateController FindTargetMechanism(Vector3 position, GameObject placementTarget)
+    private PuzzleDoor FindNearestDoor(Vector3 position)
     {
-        MechanismStateController controllerOnTarget = FindControllerOnPlacementTarget(placementTarget);
-        return controllerOnTarget != null
-            ? controllerOnTarget
-            : FindNearestMechanism(position);
+        float range = Mathf.Max(0.01f, mechanismSearchRange);
+        float nearestDistanceSquared = range * range;
+        PuzzleDoor nearest = null;
+        foreach (PuzzleDoor door in FindObjectsByType<PuzzleDoor>(FindObjectsSortMode.None))
+        {
+            Vector3 offset = door.transform.position - position;
+            offset.y = 0f;
+            float distanceSquared = offset.sqrMagnitude;
+            if (distanceSquared <= nearestDistanceSquared)
+            {
+                nearestDistanceSquared = distanceSquared;
+                nearest = door;
+            }
+        }
+
+        return nearest;
+    }
+
+    private static PuzzleDoor FindDoorOnPlacementTarget(GameObject placementTarget)
+    {
+        if (placementTarget == null)
+        {
+            return null;
+        }
+
+        PuzzleDoor door = placementTarget.GetComponent<PuzzleDoor>();
+        if (door == null)
+        {
+            door = placementTarget.GetComponentInParent<PuzzleDoor>();
+        }
+
+        if (door != null)
+        {
+            return door;
+        }
+
+        foreach (PuzzleDoor candidate in FindObjectsByType<PuzzleDoor>(FindObjectsSortMode.None))
+        {
+            if (candidate.IsEchoPlacementTarget(placementTarget))
+            {
+                return candidate;
+            }
+        }
+
+        return null;
     }
 
     private static MechanismStateController FindControllerOnPlacementTarget(GameObject placementTarget)
