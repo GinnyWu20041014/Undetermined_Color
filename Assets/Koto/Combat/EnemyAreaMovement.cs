@@ -11,6 +11,21 @@ public sealed class EnemyAreaMovement : MonoBehaviour
     [Tooltip("敵人追蹤玩家或遊蕩時在 X/Z 平面上的移動速度。")]
     [SerializeField, Min(0f)] private float moveSpeed = 2f;
 
+    [Header("受擊擊退")]
+    [SerializeField, Min(0f)] private float knockbackDistance = 0.8f;
+    [SerializeField, Min(0.01f)] private float knockbackDuration = 0.2f;
+    private Vector3 knockbackDirection;
+    private float knockbackElapsed;
+    private bool isKnockedBack;
+
+    public void ApplyKnockback(Vector3 attackerPosition)
+    {
+        knockbackDirection = Vector3.ProjectOnPlane(transform.position - attackerPosition, Vector3.up).normalized;
+        if (knockbackDirection.sqrMagnitude < 0.0001f) knockbackDirection = Vector3.back;
+        knockbackElapsed = 0f;
+        isKnockedBack = knockbackDistance > 0f;
+    }
+
     [InspectorName("移動區域")]
     [Tooltip("可增加多個 Collider。敵人不追蹤玩家時，會在這些區域內隨機移動。")]
     [SerializeField] private Collider[] movementAreas = System.Array.Empty<Collider>();
@@ -38,6 +53,7 @@ public sealed class EnemyAreaMovement : MonoBehaviour
 
     private void OnDisable()
     {
+        isKnockedBack = false;
         if (state != null) state.BecameFriendly -= ResetWanderTarget;
         FrameDisplacement = Vector3.zero;
         Moved?.Invoke(FrameDisplacement);
@@ -48,6 +64,20 @@ public sealed class EnemyAreaMovement : MonoBehaviour
     private void Update()
     {
         FrameDisplacement = Vector3.zero;
+        if (state != null && state.IsEntityDefeated) isKnockedBack = false;
+        if (isKnockedBack)
+        {
+            float duration = Mathf.Max(0.01f, knockbackDuration);
+            float before = Mathf.Clamp01(knockbackElapsed / duration);
+            knockbackElapsed += Time.deltaTime;
+            float after = Mathf.Clamp01(knockbackElapsed / duration);
+            float distance = knockbackDistance * ((1f - before) * (1f - before) - (1f - after) * (1f - after));
+            FrameDisplacement = knockbackDirection * distance;
+            transform.position += FrameDisplacement;
+            isKnockedBack = after < 1f;
+            Moved?.Invoke(FrameDisplacement);
+            return;
+        }
         if ((state == null || (state.isActiveAndEnabled && !state.IsEntityDefeated)) &&
             (animations == null || !animations.IsSummoning))
         {
@@ -55,8 +85,8 @@ public sealed class EnemyAreaMovement : MonoBehaviour
                 WanderInsideAreas();
             else if (combat == null || !combat.isActiveAndEnabled || combat.WantsToWander)
                 WanderInsideAreas();
-            else if (combat.ChaseTarget != null)
-                MoveOnXZ(combat.ChaseTarget.position);
+            else if (combat.ChasePosition.HasValue)
+                MoveOnXZ(combat.ChasePosition.Value);
         }
         Moved?.Invoke(FrameDisplacement);
     }

@@ -85,6 +85,7 @@ public class PlayerHealth : MonoBehaviour
 
     /// <summary>供敵人判斷是否應停止追擊玩家。</summary>
     public bool IsDead => isDead;
+    public float HitRadius => hitRadius;
 
     private void Awake()
     {
@@ -112,7 +113,7 @@ public class PlayerHealth : MonoBehaviour
     }
 
     /// <summary>以 X/Z 平面圓形範圍判定玩家是否受到敵人攻擊。</summary>
-    public bool TryReceiveEnemyAttack(int damage, Vector3 enemyPosition, float enemyAttackRadius)
+    public bool TryReceiveEnemyAttack(int damage, Vector3 enemyPosition, float enemyAttackRadius, Vector3? attackerPosition = null)
     {
         if (damage <= 0 || isDead || !IsInsideEnemyAttackRange(enemyPosition, enemyAttackRadius))
         {
@@ -120,6 +121,8 @@ public class PlayerHealth : MonoBehaviour
         }
 
         currentHealth = Mathf.Max(0, currentHealth - damage);
+        if (currentHealth > 0 && playerMovement != null)
+            playerMovement.ApplyKnockback(attackerPosition ?? enemyPosition);
         Debug.Log($"【玩家】受到 {damage} 點傷害，目前血量：{currentHealth}。", this);
         if (currentHealth == 0)
         {

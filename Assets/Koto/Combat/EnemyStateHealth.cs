@@ -117,19 +117,22 @@ public sealed class EnemyStateHealth : MonoBehaviour
         reviveRoutine = StartCoroutine(ReviveEntity());
     }
 
-    public bool TryReceivePlayerAttack(int damage, Vector3 attackPosition, float playerAttackRadius)
+    public bool TryReceivePlayerAttack(int damage, Vector3 attackPosition, float playerAttackRadius, Vector3? attackerPosition = null)
     {
         Initialize();
         if (!isActiveAndEnabled || damage <= 0 || IsFriendly || entityDefeated) return false;
         if (BodyCanBeHit && IsInsideHitRange(body.transform.position, bodyHitRadius, attackPosition, playerAttackRadius))
         {
             TakeBodyDamage(damage);
+            GetComponent<EnemyAreaMovement>()?.ApplyKnockback(attackerPosition ?? attackPosition);
             return true;
         }
         if (entity != null && entity.activeInHierarchy &&
             IsInsideHitRange(entity.transform.position, entityHitRadius, attackPosition, playerAttackRadius))
         {
             TakeDamage(damage);
+            if (!entityDefeated)
+                GetComponent<EnemyAreaMovement>()?.ApplyKnockback(attackerPosition ?? attackPosition);
             return true;
         }
         return false;

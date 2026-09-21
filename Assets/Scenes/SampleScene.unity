@@ -1300,9 +1300,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   moveSpeed: 3
+  knockbackDistance: 0.4
+  knockbackDuration: 0.2
   rb: {fileID: 510363717}
   animator: {fileID: 510363725}
-  movementCamera: {fileID: 0}
+  movementCamera: {fileID: 330585545}
   movingAnimationParameter: is walking
 --- !u!114 &510363720
 MonoBehaviour:
@@ -3764,7 +3766,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 101447869152371862, guid: f788505e94c760c43bdb72b990d8ac80, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 101447869152371862, guid: f788505e94c760c43bdb72b990d8ac80, type: 3}
+      propertyPath: m_TagString
+      value: Enemy
       objectReference: {fileID: 0}
     - target: {fileID: 1270142193612848373, guid: f788505e94c760c43bdb72b990d8ac80, type: 3}
       propertyPath: m_LocalPosition.x
@@ -3813,6 +3819,10 @@ PrefabInstance:
     - target: {fileID: 5801753373672896940, guid: f788505e94c760c43bdb72b990d8ac80, type: 3}
       propertyPath: moveSpeed
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5801753373672896940, guid: f788505e94c760c43bdb72b990d8ac80, type: 3}
+      propertyPath: knockbackDistance
+      value: 0.4
       objectReference: {fileID: 0}
     - target: {fileID: 5801753373672896940, guid: f788505e94c760c43bdb72b990d8ac80, type: 3}
       propertyPath: 'movementAreas.Array.data[0]'

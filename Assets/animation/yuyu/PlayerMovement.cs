@@ -5,6 +5,13 @@ public class PlayerMovement : MonoBehaviour
     [Header("移動設定")]
     public float moveSpeed = 5f;
 
+    [Header("受擊擊退")]
+    [SerializeField, Min(0f)] private float knockbackDistance = 0.8f;
+    [SerializeField, Min(0.01f)] private float knockbackDuration = 0.2f;
+    private Vector3 knockbackDirection;
+    private float knockbackElapsed;
+    private bool isKnockedBack;
+
     [Header("組件連結 (不填會自動抓)")]
     public Rigidbody rb;
     public Animator animator;
@@ -64,7 +71,33 @@ public class PlayerMovement : MonoBehaviour
 
         // 進行物理平滑移動 (保留原本 Y 軸速度以維持自然重力/貼地)
         Vector3 targetVelocity = movement * moveSpeed;
+        if (isKnockedBack)
+        {
+            float duration = Mathf.Max(0.01f, knockbackDuration);
+            float before = Mathf.Clamp01(knockbackElapsed / duration);
+            knockbackElapsed += Time.fixedDeltaTime;
+            float after = Mathf.Clamp01(knockbackElapsed / duration);
+            float distance = knockbackDistance * ((1f - before) * (1f - before) - (1f - after) * (1f - after));
+            targetVelocity = knockbackDirection * (distance / Time.fixedDeltaTime);
+            isKnockedBack = after < 1f;
+        }
         rb.linearVelocity = new Vector3(targetVelocity.x, rb.linearVelocity.y, targetVelocity.z);
+    }
+
+    public void ApplyKnockback(Vector3 attackerPosition)
+    {
+        knockbackDirection = Vector3.ProjectOnPlane(transform.position - attackerPosition, Vector3.up).normalized;
+        if (knockbackDirection.sqrMagnitude < 0.0001f) knockbackDirection = Vector3.back;
+        knockbackElapsed = 0f;
+        isKnockedBack = knockbackDistance > 0f;
+    }
+
+    private void OnDisable()
+    {
+        isKnockedBack = false;
+        movement = Vector3.zero;
+        if (rb != null && !rb.isKinematic)
+            rb.linearVelocity = new Vector3(0f, rb.linearVelocity.y, 0f);
     }
 
     private Vector3 GetCameraRelativeMovement(float horizontal, float vertical)

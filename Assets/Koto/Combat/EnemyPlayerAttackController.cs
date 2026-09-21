@@ -18,7 +18,7 @@ public sealed class EnemyPlayerAttackController : MonoBehaviour
     [SerializeField, Min(0.01f)] private float playerDetectionRange = 8f;
 
     [InspectorName("停止追擊距離")]
-    [Tooltip("只決定何時停止移動並開始揮擊；真正是否造成傷害完全由攻擊骨架接觸玩家判定。")]
+    [Tooltip("進入此距離後，仍須讓攻擊骨架接近玩家受擊範圍才會揮擊；距離不足時繼續調整站位。")]
     [SerializeField, Min(0.01f), FormerlySerializedAs("attackRange")] private float stopChasingDistance = 1.5f;
 
     [InspectorName("實體攻擊骨架")]
@@ -82,6 +82,7 @@ public sealed class EnemyPlayerAttackController : MonoBehaviour
     public bool IsEntityAttacking => isEntityAttacking;
     public bool IsBodyAttacking => isBodyAttacking;
     public Transform ChaseTarget { get; private set; }
+    public Vector3? ChasePosition { get; private set; }
     public bool WantsToWander { get; private set; }
 
     private void OnEnable() => Bind();
@@ -105,6 +106,7 @@ public sealed class EnemyPlayerAttackController : MonoBehaviour
         if (state != null) state.CombatInterrupted -= OnCombatInterrupted;
         CancelAllAttacks();
         ChaseTarget = null;
+        ChasePosition = null;
         WantsToWander = false;
     }
 
@@ -112,12 +114,14 @@ public sealed class EnemyPlayerAttackController : MonoBehaviour
     {
         CancelAllAttacks();
         ChaseTarget = null;
+        ChasePosition = null;
         WantsToWander = false;
     }
 
     private void Update()
     {
         ChaseTarget = null;
+        ChasePosition = null;
         WantsToWander = false;
         if (state == null || !state.isActiveAndEnabled || state.IsEntityDefeated)
         {
@@ -147,20 +151,93 @@ public sealed class EnemyPlayerAttackController : MonoBehaviour
             WantsToWander = true;
             return;
         }
+        // 揮擊中不因玩家被擊退或短暫移動而取消整次攻擊。
+        if (IsAnyAttackInProgress())
+        {
+            UpdateAttackApproach(playerHealth);
+            animations?.SetEntityLocomotionAnimation(false);
+            return;
+        }
         if (HorizontalDistance(player.position) > stopChasingDistance)
         {
             CancelAllAttacks();
             ChaseTarget = player;
+            ChasePosition = player.position;
             return;
         }
-        if (IsAnyAttackInProgress())
+        bool entityReady = TryGetAttackApproach(playerHealth, entityAttackBones, entityBoneHitRadius, out Vector3 entityApproach)
+            && entityApproach.sqrMagnitude < 0.0001f;
+        bool bodyAvailable = state.BodyCanBeHit && body != null && body.activeInHierarchy;
+        bool bodyReady = bodyAvailable && TryGetAttackApproach(playerHealth, bodyAttackBones, bodyBoneHitRadius, out Vector3 bodyApproach)
+            && bodyApproach.sqrMagnitude < 0.0001f;
+        if (entityReady) TryStartEntityAttack();
+        if (bodyReady) TryStartBodyAttack();
+        if (!IsAnyAttackInProgress())
         {
-            animations?.SetEntityLocomotionAnimation(false);
-            return;
+            // 先把可用骨架移到能命中的位置，再開始計算攻擊動畫與傷害窗口。
+            if (TryGetAttackApproach(playerHealth, entityAttackBones, entityBoneHitRadius, out Vector3 approach) ||
+                (bodyAvailable && TryGetAttackApproach(playerHealth, bodyAttackBones, bodyBoneHitRadius, out approach)))
+            {
+                if (approach.sqrMagnitude > 0.0001f)
+                {
+                    ChaseTarget = player;
+                    ChasePosition = transform.position + approach;
+                }
+            }
+            else
+            {
+                WarnMissingEntityAttackSetup();
+            }
         }
-        TryStartEntityAttack();
-        TryStartBodyAttack();
-        animations?.SetEntityLocomotionAnimation(false);
+        else
+        {
+            UpdateAttackApproach(playerHealth);
+            animations?.SetEntityLocomotionAnimation(false);
+        }
+    }
+
+    private void UpdateAttackApproach(PlayerHealth playerHealth)
+    {
+        if (playerHealth == null) return;
+
+        // 以實體骨架優先決定站位，避免兩組骨架同時拉扯移動方向。
+        Transform[] bones = isEntityAttacking && !entityAttackHitApplied && HasAnyValidBone(entityAttackBones)
+            ? entityAttackBones : isBodyAttacking && !bodyAttackHitApplied ? bodyAttackBones : null;
+        float radius = bones == entityAttackBones ? entityBoneHitRadius : bodyBoneHitRadius;
+        if (bones == null) return;
+
+        if (TryGetAttackApproach(playerHealth, bones, radius, out Vector3 approach) && approach.sqrMagnitude > 0.0001f)
+        {
+            ChaseTarget = player;
+            ChasePosition = transform.position + approach;
+        }
+    }
+
+    private static bool TryGetAttackApproach(PlayerHealth playerHealth, Transform[] bones, float radius, out Vector3 approach)
+    {
+        approach = Vector3.zero;
+        if (playerHealth == null || bones == null) return false;
+
+        Vector3 closestOffset = Vector3.zero;
+        float closestDistance = float.PositiveInfinity;
+        foreach (Transform bone in bones)
+        {
+            if (bone == null || !bone.gameObject.activeInHierarchy) continue;
+            Vector3 offset = playerHealth.transform.position - bone.position;
+            offset.y = 0f;
+            if (offset.sqrMagnitude < closestDistance)
+            {
+                closestOffset = offset;
+                closestDistance = offset.sqrMagnitude;
+            }
+        }
+        if (float.IsPositiveInfinity(closestDistance)) return false;
+
+        // 留少量重疊，避免停在浮點誤差或動畫移動造成的命中邊界外。
+        float reach = (playerHealth.HitRadius + radius) * 0.85f;
+        float gap = Mathf.Sqrt(closestDistance) - reach;
+        if (gap > 0f) approach = closestOffset.normalized * gap;
+        return true;
     }
 
     private float HorizontalDistance(Vector3 position)
@@ -349,12 +426,12 @@ public sealed class EnemyPlayerAttackController : MonoBehaviour
 
         foreach (Transform attackBone in attackBones)
         {
-            if (attackBone == null)
+            if (attackBone == null || !attackBone.gameObject.activeInHierarchy)
             {
                 continue;
             }
 
-            if (playerHealth.TryReceiveEnemyAttack(attackPower, attackBone.position, boneHitRadius))
+            if (playerHealth.TryReceiveEnemyAttack(attackPower, attackBone.position, boneHitRadius, transform.position))
             {
                 Debug.Log($"【敵人】{attackerName}攻擊骨架命中玩家，造成 {attackPower} 點傷害。", this);
                 return true;
@@ -436,7 +513,7 @@ public sealed class EnemyPlayerAttackController : MonoBehaviour
             return;
         }
 
-        Debug.LogWarning("【敵人】實體攻擊骨架尚未指定；攻擊動畫會播放，但不會對玩家造成命中傷害。", this);
+        Debug.LogWarning("【敵人】請確認實體攻擊骨架與攻擊動畫設定；沒有可用的命中骨架時不會開始攻擊。", this);
         hasWarnedMissingEntitySetup = true;
     }
 

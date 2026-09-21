@@ -78,7 +78,7 @@ public class PlayerAttack : MonoBehaviour
                 continue;
             }
 
-            enemy.TryReceivePlayerAttack(attackDamage, origin, attackRange);
+            enemy.TryReceivePlayerAttack(attackDamage, origin, attackRange, transform.position);
         }
 
         Debug.Log("【攻擊系統】已使用圓形範圍發動攻擊。", this);
