@@ -27,11 +27,11 @@ public sealed class PuzzleDoor : MonoBehaviour
 
     [Header("門片物件")]
     [InspectorName("左側門片")]
-    [Tooltip("開門時只會往本地 X 軸左方移動 1.5。")]
+    [Tooltip("開門時依此門片目前旋轉後的左方向滑動 1.5（父物件座標單位）。")]
     [SerializeField] private Transform leftDoorPanel = null;
 
     [InspectorName("右側門片")]
-    [Tooltip("開門時只會往本地 X 軸右方移動 1.5。")]
+    [Tooltip("開門時依此門片目前旋轉後的右方向滑動 1.5（父物件座標單位）。")]
     [SerializeField] private Transform rightDoorPanel = null;
 
     [InspectorName("門片移動時間")]
@@ -42,6 +42,7 @@ public sealed class PuzzleDoor : MonoBehaviour
 
     private Vector3 leftClosedPosition;
     private Vector3 rightClosedPosition;
+    private float openingDistance;
     private readonly HashSet<UnityEngine.Object> waitEchoRequesters =
         new HashSet<UnityEngine.Object>();
 
@@ -63,21 +64,20 @@ public sealed class PuzzleDoor : MonoBehaviour
         float speed = OpenDistance / Mathf.Max(0.01f, movementDuration);
         float step = speed * Time.deltaTime;
 
-        if (leftDoorPanel != null)
-        {
-            Vector3 position = leftDoorPanel.localPosition;
-            float targetX = IsOpen ? leftClosedPosition.x - OpenDistance : leftClosedPosition.x;
-            position.x = Mathf.MoveTowards(position.x, targetX, step);
-            leftDoorPanel.localPosition = position;
-        }
+        openingDistance = Mathf.MoveTowards(openingDistance, IsOpen ? OpenDistance : 0f, step);
+        ApplyPanelPositions();
+    }
 
+    private void ApplyPanelPositions()
+    {
+        // localPosition 使用父物件座標，因此先把門片自身的左右軸旋轉至父座標。
+        // 每幀由關門基準位置重算，避免反覆開關或旋轉後累積位移誤差。
+        if (leftDoorPanel != null)
+            leftDoorPanel.localPosition = leftClosedPosition
+                + leftDoorPanel.localRotation * (Vector3.left * openingDistance);
         if (rightDoorPanel != null)
-        {
-            Vector3 position = rightDoorPanel.localPosition;
-            float targetX = IsOpen ? rightClosedPosition.x + OpenDistance : rightClosedPosition.x;
-            position.x = Mathf.MoveTowards(position.x, targetX, step);
-            rightDoorPanel.localPosition = position;
-        }
+            rightDoorPanel.localPosition = rightClosedPosition
+                + rightDoorPanel.localRotation * (Vector3.right * openingDistance);
     }
 
     public void ToggleDoorState()
@@ -139,19 +139,8 @@ public sealed class PuzzleDoor : MonoBehaviour
 
         if (moveImmediately)
         {
-            if (leftDoorPanel != null)
-            {
-                leftDoorPanel.localPosition = IsOpen
-                    ? leftClosedPosition + Vector3.left * OpenDistance
-                    : leftClosedPosition;
-            }
-
-            if (rightDoorPanel != null)
-            {
-                rightDoorPanel.localPosition = IsOpen
-                    ? rightClosedPosition + Vector3.right * OpenDistance
-                    : rightClosedPosition;
-            }
+            openingDistance = IsOpen ? OpenDistance : 0f;
+            ApplyPanelPositions();
         }
 
         if (notify)
