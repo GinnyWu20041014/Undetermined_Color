@@ -27,11 +27,11 @@ public sealed class PuzzleDoor : MonoBehaviour
 
     [Header("門片物件")]
     [InspectorName("左側門片")]
-    [Tooltip("開門時依此門片目前旋轉後的左方向滑動 1.5（父物件座標單位）。")]
+    [Tooltip("沿左右門片的排列方向向外滑動 1.5 世界單位，不使用模型自身的 X 軸。")]
     [SerializeField] private Transform leftDoorPanel = null;
 
     [InspectorName("右側門片")]
-    [Tooltip("開門時依此門片目前旋轉後的右方向滑動 1.5（父物件座標單位）。")]
+    [Tooltip("沿左右門片的排列方向向外滑動 1.5 世界單位，不使用模型自身的 X 軸。")]
     [SerializeField] private Transform rightDoorPanel = null;
 
     [InspectorName("門片移動時間")]
@@ -43,6 +43,7 @@ public sealed class PuzzleDoor : MonoBehaviour
     private Vector3 leftClosedPosition;
     private Vector3 rightClosedPosition;
     private float openingDistance;
+    private Vector3 localOpeningDirection;
     private readonly HashSet<UnityEngine.Object> waitEchoRequesters =
         new HashSet<UnityEngine.Object>();
 
@@ -54,8 +55,18 @@ public sealed class PuzzleDoor : MonoBehaviour
 
     private void Awake()
     {
-        if (leftDoorPanel != null) leftClosedPosition = leftDoorPanel.localPosition;
-        if (rightDoorPanel != null) rightClosedPosition = rightDoorPanel.localPosition;
+        // 以整扇門作共同座標系，避免 FBX 的匯入軸向和門片父物件不同造成錯位。
+        if (leftDoorPanel != null) leftClosedPosition = transform.InverseTransformPoint(leftDoorPanel.position);
+        if (rightDoorPanel != null) rightClosedPosition = transform.InverseTransformPoint(rightDoorPanel.position);
+        Vector3 direction = transform.right;
+        if (leftDoorPanel != null && rightDoorPanel != null)
+        {
+            direction = GetPanelCenter(rightDoorPanel) - GetPanelCenter(leftDoorPanel);
+            if (direction.sqrMagnitude < 0.000001f)
+                direction = rightDoorPanel.position - leftDoorPanel.position;
+            if (direction.sqrMagnitude < 0.000001f) direction = transform.right;
+        }
+        localOpeningDirection = transform.InverseTransformDirection(direction.normalized);
         SetDoorState(currentState, false, true);
     }
 
@@ -70,14 +81,22 @@ public sealed class PuzzleDoor : MonoBehaviour
 
     private void ApplyPanelPositions()
     {
-        // localPosition 使用父物件座標，因此先把門片自身的左右軸旋轉至父座標。
-        // 每幀由關門基準位置重算，避免反覆開關或旋轉後累積位移誤差。
+        // 開合軸取自兩門片的實際排列，並隨整扇門旋轉；模型軸向不參與判定。
+        Vector3 offset = transform.TransformDirection(localOpeningDirection).normalized * openingDistance;
         if (leftDoorPanel != null)
-            leftDoorPanel.localPosition = leftClosedPosition
-                + leftDoorPanel.localRotation * (Vector3.left * openingDistance);
+            leftDoorPanel.position = transform.TransformPoint(leftClosedPosition) - offset;
         if (rightDoorPanel != null)
-            rightDoorPanel.localPosition = rightClosedPosition
-                + rightDoorPanel.localRotation * (Vector3.right * openingDistance);
+            rightDoorPanel.position = transform.TransformPoint(rightClosedPosition) + offset;
+    }
+
+    private static Vector3 GetPanelCenter(Transform panel)
+    {
+        // 左右 FBX 可能共用原點，因此優先使用可見模型的中心。
+        Renderer[] renderers = panel.GetComponentsInChildren<Renderer>();
+        if (renderers.Length == 0) return panel.position;
+        Bounds bounds = renderers[0].bounds;
+        for (int i = 1; i < renderers.Length; i++) bounds.Encapsulate(renderers[i].bounds);
+        return bounds.center;
     }
 
     public void ToggleDoorState()

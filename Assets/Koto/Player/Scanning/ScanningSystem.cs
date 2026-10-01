@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.Rendering;
 
 /// <summary>
 /// 切換玩家的掃描模式，並在進入時播放由內向外、退出時播放由外向內的光圈。
@@ -37,6 +38,132 @@ public class ScanningSystem : MonoBehaviour
     [SerializeField] private Color scanMaskColor = new Color(0f, 0f, 0f, 0.65f);
     [Tooltip("遮罩的 UI 顯示層級；掃描文字所在 Canvas 的排序值需高於此數值。")]
     [SerializeField] private int maskSortingOrder = 100;
+
+    [Header("掃描互動提示")]
+    [SerializeField] private string interactionTag = "placementTarget";
+    [SerializeField] private Color interactionOutlineColor = new Color(1f, 1f, 1f, 0.35f);
+    [SerializeField, Range(1f, 6f)] private float interactionOutlineWidth = 2f;
+    private RenderTexture interactionMask;
+    private Material scanOverlayMaterial;
+    private Shader silhouetteShader;
+    private readonly Dictionary<Renderer, Material> interactionRenderers = new Dictionary<Renderer, Material>();
+    private readonly HashSet<Renderer> outlinedRenderers = new HashSet<Renderer>();
+    private float nextInteractionRefresh;
+
+    private void OnEnable()
+    {
+        RenderPipelineManager.beginCameraRendering += BeforeCameraRendering;
+        Camera.onPreRender += BeforeBuiltinCameraRendering;
+    }
+
+    private void BeforeCameraRendering(ScriptableRenderContext context, Camera view)
+    {
+        if (view == Camera.main) RenderInteractionMask(view);
+    }
+
+    private void BeforeBuiltinCameraRendering(Camera view)
+    {
+        if (GraphicsSettings.currentRenderPipeline == null && view == Camera.main)
+            RenderInteractionMask(view);
+    }
+
+    private void RenderInteractionMask(Camera view)
+    {
+        if (!IsScanning || scanOverlayMaterial == null) return;
+        if (view == null) return;
+        if (Time.unscaledTime >= nextInteractionRefresh)
+        {
+            RefreshInteractionRenderers();
+            nextInteractionRefresh = Time.unscaledTime + 0.5f;
+        }
+        if (interactionMask == null || interactionMask.width != Screen.width || interactionMask.height != Screen.height)
+        {
+            if (interactionMask != null) { interactionMask.Release(); Destroy(interactionMask); }
+            interactionMask = new RenderTexture(Mathf.Max(1, Screen.width), Mathf.Max(1, Screen.height), 0);
+            interactionMask.name = "Scanning Interaction Silhouettes";
+            interactionMask.wrapMode = TextureWrapMode.Clamp;
+            interactionMask.Create();
+            scanOverlayMaterial.SetTexture("_InteractionMask", interactionMask);
+        }
+        scanOverlayMaterial.SetColor("_OutlineColor", interactionOutlineColor);
+        scanOverlayMaterial.SetFloat("_OutlineWidth", interactionOutlineWidth);
+        using (CommandBuffer commands = new CommandBuffer())
+        {
+            commands.SetRenderTarget(interactionMask);
+            commands.ClearRenderTarget(false, true, Color.clear);
+            commands.SetViewport(view.pixelRect);
+            // 在鏡頭完成跟隨、物件完成動畫後才繪製；明確傳入同一台鏡頭的投影。
+            // 不依賴 URP 尚未設定好的 Unity 全域攝影機矩陣。
+            commands.SetGlobalMatrix("_ScanViewProjection",
+                GL.GetGPUProjectionMatrix(view.projectionMatrix, true) * view.worldToCameraMatrix);
+            foreach (var entry in interactionRenderers)
+            {
+                Renderer renderer = entry.Key;
+                if (renderer == null || !renderer.enabled || !renderer.gameObject.activeInHierarchy ||
+                    (view.cullingMask & (1 << renderer.gameObject.layer)) == 0) continue;
+                Material material = entry.Value;
+                material.SetColor("_MaskColor", outlinedRenderers.Contains(renderer) ? Color.white : new Color(1, 0, 0, 1));
+                if (renderer is SpriteRenderer sprite)
+                {
+                    if (sprite.sprite == null) continue;
+                    material.SetTexture("_MainTex", sprite.sprite.texture);
+                    material.SetFloat("_Opacity", sprite.color.a);
+                    material.SetVector("_Flip", new Vector4(sprite.flipX ? -1 : 1, sprite.flipY ? -1 : 1, 0, 0));
+                    commands.DrawRenderer(renderer, material, 0, 0);
+                }
+                else
+                {
+                    Material[] sources = renderer.sharedMaterials;
+                    for (int i = 0; i < sources.Length; i++)
+                    {
+                        Material source = sources[i];
+                        Texture texture = source != null && source.HasProperty("_BaseMap") ? source.GetTexture("_BaseMap")
+                            : source != null && source.HasProperty("_MainTex") ? source.GetTexture("_MainTex") : null;
+                        // 全域參數依 draw 分開記錄，避免多材質子網格共用最後一張貼圖。
+                        commands.SetGlobalTexture("_ScanTexture", texture != null ? texture : Texture2D.whiteTexture);
+                        string textureProperty = source != null && source.HasProperty("_BaseMap") ? "_BaseMap" : "_MainTex";
+                        Vector2 tiling = source != null && source.HasProperty(textureProperty) ? source.GetTextureScale(textureProperty) : Vector2.one;
+                        Vector2 offset = source != null && source.HasProperty(textureProperty) ? source.GetTextureOffset(textureProperty) : Vector2.zero;
+                        commands.SetGlobalVector("_ScanTextureST", new Vector4(tiling.x, tiling.y, offset.x, offset.y));
+                        commands.DrawRenderer(renderer, material, i, 1);
+                    }
+                }
+            }
+            Graphics.ExecuteCommandBuffer(commands);
+        }
+    }
+
+    private void RefreshInteractionRenderers()
+    {
+        foreach (Material material in interactionRenderers.Values) Destroy(material);
+        interactionRenderers.Clear();
+        outlinedRenderers.Clear();
+        if (silhouetteShader == null) return;
+        if (!string.IsNullOrWhiteSpace(interactionTag) && IsTagDefined(interactionTag))
+            foreach (GameObject target in GameObject.FindGameObjectsWithTag(interactionTag))
+                AddInteractionRenderers(target, true);
+        foreach (GameObject target in scanRevealObjects)
+            if (target != null && target.activeInHierarchy) AddInteractionRenderers(target, false);
+    }
+
+    private void AddInteractionRenderers(GameObject target, bool outlined)
+    {
+        foreach (Renderer renderer in target.GetComponentsInChildren<Renderer>())
+        {
+            if (!(renderer is SpriteRenderer) && !(renderer is MeshRenderer) && !(renderer is SkinnedMeshRenderer)) continue;
+            if (!interactionRenderers.ContainsKey(renderer)) interactionRenderers.Add(renderer, new Material(silhouetteShader));
+            if (outlined) outlinedRenderers.Add(renderer);
+        }
+    }
+
+    private void OnDisable()
+    {
+        RenderPipelineManager.beginCameraRendering -= BeforeCameraRendering;
+        Camera.onPreRender -= BeforeBuiltinCameraRendering;
+        if (IsScanning) SetScanning(false);
+        isRingAnimating = false;
+        if (ringRenderer != null) ringRenderer.enabled = false;
+    }
 
     [Header("掃描顯示物件 Tag")]
     [Tooltip("可增加多個 Tag。帶有這些 Tag 的物件只會在掃描模式中顯示。")]
@@ -141,6 +268,9 @@ public class ScanningSystem : MonoBehaviour
 
     private void OnDestroy()
     {
+        foreach (Material material in interactionRenderers.Values) Destroy(material);
+        if (scanOverlayMaterial != null) Destroy(scanOverlayMaterial);
+        if (interactionMask != null) { interactionMask.Release(); Destroy(interactionMask); }
         if (ringTransform != null)
         {
             Destroy(ringTransform.gameObject);
@@ -191,10 +321,19 @@ public class ScanningSystem : MonoBehaviour
         Image image = scanMaskObject.GetComponent<Image>();
         image.color = scanMaskColor;
         image.raycastTarget = false;
+        silhouetteShader = Resources.Load<Shader>("ScanInteractionSilhouette");
+        Shader overlayShader = Resources.Load<Shader>("ScanInteractionOverlay");
+        if (silhouetteShader != null && overlayShader != null)
+        {
+            scanOverlayMaterial = new Material(overlayShader);
+            scanOverlayMaterial.SetTexture("_InteractionMask", Texture2D.blackTexture);
+            image.material = scanOverlayMaterial;
+        }
     }
 
     private void SetScanPresentation(bool visible)
     {
+        nextInteractionRefresh = 0f;
         if (scanMaskObject != null)
         {
             scanMaskObject.SetActive(visible);
