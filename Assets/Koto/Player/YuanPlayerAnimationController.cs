@@ -1,7 +1,7 @@
 using UnityEngine;
 
 /// <summary>
-/// 將 yuan Animator 的待機、移動與死亡動畫連接至現有玩家系統。
+/// 將 yuan Animator 的待機、移動、攻擊與死亡動畫連接至現有玩家系統。
 /// 本元件只負責動畫，不處理移動、生命或輸入。
 /// </summary>
 [DisallowMultipleComponent]
@@ -21,6 +21,52 @@ public sealed class YuanPlayerAnimationController : MonoBehaviour
     [InspectorName("玩家生命腳本")]
     [Tooltip("放入控制此角色生命的 PlayerHealth；未指定時會自動尋找父物件與子物件。")]
     [SerializeField] private PlayerHealth playerHealth = null;
+
+    [InspectorName("玩家攻擊腳本")]
+    [SerializeField] private PlayerAttack playerAttack = null;
+
+    [Header("攻擊動畫")]
+    [InspectorName("攻擊動畫狀態名称")]
+    [SerializeField] private string attackStateName = "Base Layer.attack1";
+    private PlayerAttack subscribedAttack;
+    private bool isPlayingAttack;
+    private int attackStartedFrame;
+
+    private void OnEnable() => BindAttack();
+
+    private void BindAttack()
+    {
+        ResolveReferences();
+        if (subscribedAttack != null) subscribedAttack.AttackStarted -= PlayAttackAnimation;
+        subscribedAttack = playerAttack;
+        if (subscribedAttack != null) subscribedAttack.AttackStarted += PlayAttackAnimation;
+    }
+
+    private void OnDisable()
+    {
+        if (subscribedAttack != null) subscribedAttack.AttackStarted -= PlayAttackAnimation;
+        subscribedAttack = null;
+        isPlayingAttack = false;
+        hasMovementState = false;
+    }
+
+    public void PlayAttackAnimation()
+    {
+        if (yuanAnimator == null || !yuanAnimator.isActiveAndEnabled ||
+            (playerHealth != null && playerHealth.IsDead) || string.IsNullOrWhiteSpace(attackStateName)) return;
+        int hash = Animator.StringToHash(attackStateName);
+        if (!yuanAnimator.HasState(0, hash))
+        {
+            Debug.LogWarning($"【Yuan 動畫】找不到攻擊狀態「{attackStateName}」。", this);
+            return;
+        }
+        TrySetBool(movingParameterName, false);
+        // 每次有效出手都重新播放，避免 Trigger 留到下一個狀態造成延後攻擊。
+        yuanAnimator.Play(hash, 0, 0f);
+        isPlayingAttack = true;
+        attackStartedFrame = Time.frameCount;
+        hasMovementState = false;
+    }
 
     [Header("Animator 參數名稱")]
     [InspectorName("移動參數名稱")]
@@ -55,7 +101,7 @@ public sealed class YuanPlayerAnimationController : MonoBehaviour
 
     private void Start()
     {
-        ResolveReferences();
+        BindAttack();
         wasDead = playerHealth != null && playerHealth.IsDead;
 
         if (wasDead)
@@ -95,12 +141,28 @@ public sealed class YuanPlayerAnimationController : MonoBehaviour
 
         if (!isDead)
         {
+            if (isPlayingAttack)
+            {
+                if (Time.frameCount == attackStartedFrame) return;
+                AnimatorStateInfo state = yuanAnimator.GetCurrentAnimatorStateInfo(0);
+                if (state.fullPathHash == Animator.StringToHash(attackStateName) && state.normalizedTime < 1f)
+                    return;
+                isPlayingAttack = false;
+                bool moving = playerMovement != null && playerMovement.IsMoving;
+                PlayState(moving ? walkStateName : idleStateName, moving ? "移動" : "待機");
+                hasMovementState = false;
+            }
             UpdateMovementAnimation(false);
         }
     }
 
     private void ResolveReferences()
     {
+        if (playerAttack == null)
+        {
+            playerAttack = GetComponentInParent<PlayerAttack>();
+            if (playerAttack == null) playerAttack = GetComponentInChildren<PlayerAttack>();
+        }
         if (yuanAnimator == null)
         {
             yuanAnimator = GetComponent<Animator>();
@@ -150,6 +212,7 @@ public sealed class YuanPlayerAnimationController : MonoBehaviour
 
     private void PlayDeathAnimation()
     {
+        isPlayingAttack = false;
         TrySetBool(movingParameterName, false);
         hasMovementState = false;
 

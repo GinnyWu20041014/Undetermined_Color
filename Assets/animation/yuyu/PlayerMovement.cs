@@ -25,7 +25,6 @@ public class PlayerMovement : MonoBehaviour
     private Vector3 movement;
     private bool isFacingRight = false;
     private bool hasMovingAnimationParameter;
-
     /// <summary>供玩家動畫腳本讀取目前是否有移動輸入。</summary>
     public bool IsMoving => enabled && movement.sqrMagnitude > 0.0001f;
 

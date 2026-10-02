@@ -23,6 +23,7 @@ public class PlayerAttack : MonoBehaviour
     [SerializeField, Min(0f)] private float attackCooldown = 0.35f;
 
     private float nextAttackTime;
+    public event System.Action AttackStarted;
 
     /// <summary>提供其他玩家系統使用與攻擊相同的圓形範圍半徑。</summary>
     public float AttackRange => attackRange;
@@ -51,6 +52,8 @@ public class PlayerAttack : MonoBehaviour
     /// <summary>可由動畫事件或其他腳本呼叫的攻擊入口。</summary>
     public void TryAttack()
     {
+        PlayerHealth health = GetComponent<PlayerHealth>();
+        if (health != null && health.IsDead) return;
         if (scanningSystem != null && scanningSystem.IsScanning)
         {
             Debug.Log("【攻擊系統】掃描模式中，無法攻擊。", this);
@@ -69,6 +72,7 @@ public class PlayerAttack : MonoBehaviour
         }
 
         nextAttackTime = Time.time + attackCooldown;
+        AttackStarted?.Invoke();
         Vector3 origin = attackDirection.position;
         EnemyStateHealth[] enemies = FindObjectsByType<EnemyStateHealth>(FindObjectsSortMode.None);
         foreach (EnemyStateHealth enemy in enemies)
