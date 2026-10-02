@@ -45,7 +45,20 @@ public class ItemPickupSystem : MonoBehaviour
     [Tooltip("第三個撿取物品要顯示的 UI Image。")]
     [SerializeField] private Image thirdSlotImage = null;
 
-    private readonly GameObject[] pickedItems = new GameObject[3];
+    [SerializeField, HideInInspector] private GameObject[] pickedItems = new GameObject[3];
+
+    /// <summary>掃描顯示時直接核對玩家列表，包含回想的父子顯示物件。</summary>
+    public bool IsItemInInventory(GameObject target)
+    {
+        if (target == null) return false;
+        foreach (GameObject item in pickedItems)
+        {
+            if (item == null) continue;
+            if (target == item || target.transform.IsChildOf(item.transform) ||
+                item.transform.IsChildOf(target.transform)) return true;
+        }
+        return false;
+    }
 
     private void Awake()
     {
@@ -103,6 +116,10 @@ public class ItemPickupSystem : MonoBehaviour
             return;
         }
 
+        EchoPickupState pickupState = nearestItem.GetComponentInParent<EchoPickupState>(true);
+        if (pickupState == null) pickupState = nearestItem.AddComponent<EchoPickupState>();
+        if (!pickupState.TryPickUp()) return;
+
         Image availableSlot = GetSlots()[availableSlotIndex];
         availableSlot.sprite = itemSprite;
         availableSlot.preserveAspect = true;
@@ -124,7 +141,7 @@ public class ItemPickupSystem : MonoBehaviour
             return;
         }
 
-        GameObject placementTarget = FindNearestTaggedObject(placementTargetTag);
+        GameObject placementTarget = FindNearestTaggedObject(placementTargetTag, true);
         if (placementTarget == null)
         {
             Debug.Log($"【撿取系統】攻擊範圍內找不到 Tag 為「{placementTargetTag}」的放置目標。", this);
@@ -133,6 +150,8 @@ public class ItemPickupSystem : MonoBehaviour
 
         GameObject item = pickedItems[pickedSlotIndex];
         item.transform.position = placementTarget.transform.position;
+        EchoPickupState pickupState = item.GetComponentInParent<EchoPickupState>(true);
+        if (pickupState != null) pickupState.MarkPlaced();
         item.SetActive(true);
         NotifyItemPlaced(item, placementTarget);
 
@@ -147,7 +166,7 @@ public class ItemPickupSystem : MonoBehaviour
         return FindNearestTaggedObject(itemTag);
     }
 
-    private GameObject FindNearestTaggedObject(string targetTag)
+    private GameObject FindNearestTaggedObject(string targetTag, bool useColliderSurface = false)
     {
         if (string.IsNullOrWhiteSpace(targetTag))
         {
@@ -170,12 +189,18 @@ public class ItemPickupSystem : MonoBehaviour
         float nearestDistanceSquared = interactionRange * interactionRange;
         foreach (GameObject taggedObject in taggedObjects)
         {
+            if (!useColliderSurface)
+            {
+                if (IsItemInInventory(taggedObject) || EchoPickupState.ShouldHideFromScan(taggedObject)) continue;
+            }
             StopEcho stopEcho = taggedObject.GetComponentInParent<StopEcho>();
             if (stopEcho != null && stopEcho.IsConsumed) continue;
 
             Vector3 offset = taggedObject.transform.position - transform.position;
             offset.y = 0f;
             float distanceSquared = offset.sqrMagnitude;
+            if (useColliderSurface)
+                distanceSquared = GetPlacementDistanceSquared(taggedObject, distanceSquared);
             if (distanceSquared <= nearestDistanceSquared)
             {
                 nearestDistanceSquared = distanceSquared;
@@ -184,6 +209,30 @@ public class ItemPickupSystem : MonoBehaviour
         }
 
         return nearestObject;
+    }
+
+    private float GetPlacementDistanceSquared(GameObject target, float pivotDistanceSquared)
+    {
+        float nearestDistanceSquared = float.PositiveInfinity;
+        foreach (Collider targetCollider in target.GetComponentsInChildren<Collider>())
+        {
+            if (!targetCollider.enabled || !targetCollider.gameObject.activeInHierarchy) continue;
+
+            // A nested placement target belongs to itself, not to this target.
+            Transform owner = targetCollider.transform;
+            while (owner != target.transform && owner != null && !owner.CompareTag(placementTargetTag))
+                owner = owner.parent;
+            if (owner != target.transform) continue;
+
+            // Interactions use X/Z distance. Sample at the collider's height so an
+            // elevated or tilted model does not require the player to reach its pivot.
+            Vector3 probe = transform.position;
+            probe.y = targetCollider.bounds.center.y;
+            Vector3 offset = targetCollider.ClosestPoint(probe) - probe;
+            offset.y = 0f;
+            nearestDistanceSquared = Mathf.Min(nearestDistanceSquared, offset.sqrMagnitude);
+        }
+        return float.IsPositiveInfinity(nearestDistanceSquared) ? pivotDistanceSquared : nearestDistanceSquared;
     }
 
     private Image[] GetSlots()

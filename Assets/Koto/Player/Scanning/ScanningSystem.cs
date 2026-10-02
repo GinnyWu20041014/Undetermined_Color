@@ -180,6 +180,7 @@ public class ScanningSystem : MonoBehaviour
     private bool isContracting;
     private readonly RaycastHit[] surfaceHits = new RaycastHit[16];
     private readonly HashSet<GameObject> scanRevealObjects = new HashSet<GameObject>();
+    private ItemPickupSystem itemPickupSystem;
 
     private void Awake()
     {
@@ -340,11 +341,14 @@ public class ScanningSystem : MonoBehaviour
         }
 
         RefreshScanRevealObjects();
+        if (itemPickupSystem == null) itemPickupSystem = GetComponent<ItemPickupSystem>();
         foreach (GameObject scanRevealObject in scanRevealObjects)
         {
             if (scanRevealObject != null)
             {
-                scanRevealObject.SetActive(visible);
+                bool inInventory = itemPickupSystem != null && itemPickupSystem.IsItemInInventory(scanRevealObject);
+                bool canReveal = !inInventory && !EchoPickupState.ShouldHideFromScan(scanRevealObject);
+                scanRevealObject.SetActive(visible && canReveal);
             }
         }
     }

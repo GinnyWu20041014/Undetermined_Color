@@ -14,6 +14,10 @@ public class PlayerHealth : MonoBehaviour
     [Tooltip("玩家復活時會回復至此血量。")]
     [SerializeField, Min(1)] private int maxHealth = 100;
 
+    [InspectorName("死亡後重生點")]
+    [Tooltip("死亡後回到此物件的世界位置；未指定時回到玩家開場位置。請放在雷射範圍外。")]
+    [SerializeField] private Transform respawnPoint = null;
+
     [InspectorName("玩家受擊半徑")]
     [Tooltip("以玩家為中心的 X/Z 平面圓形受擊範圍。")]
     [SerializeField, Min(0.01f)] private float hitRadius = 0.75f;
@@ -70,7 +74,8 @@ public class PlayerHealth : MonoBehaviour
 
     private int currentHealth;
     private bool isDead;
-    private Vector3 deathPosition;
+    private Vector3 initialPosition;
+    private Transform playerBody;
     private GameObject lowHealthScreen;
     private Image lowHealthImage;
     private Rigidbody playerRigidbody;
@@ -102,6 +107,9 @@ public class PlayerHealth : MonoBehaviour
         }
 
         playerRigidbody = GetComponentInParent<Rigidbody>();
+        playerBody = playerRigidbody != null ? playerRigidbody.transform :
+            (playerMovement != null ? playerMovement.transform : transform);
+        initialPosition = playerBody.position;
 
         CreateLowHealthScreen();
         SetDeathImage(false);
@@ -141,25 +149,43 @@ public class PlayerHealth : MonoBehaviour
         return offset.sqrMagnitude <= combinedRadius * combinedRadius;
     }
 
+    /// <summary>雷射等即死機關使用，直接歸零血量並進入既有死亡流程。</summary>
+    public void ForceDeath()
+    {
+        if (isDead) return;
+        currentHealth = 0;
+        StartCoroutine(DeathAndRespawn());
+    }
+
     private IEnumerator DeathAndRespawn()
     {
         isDead = true;
-        deathPosition = transform.position;
         SetPlayerMovementEnabled(false);
         SetLowHealthScreen(false);
         yield return StartCoroutine(PlayDeathVignette());
         SetDeathImage(true);
 
-        Debug.Log("【玩家】血量歸零，已顯示死亡 UI 圖片；3 秒後原地復活。", this);
+        Debug.Log("【玩家】血量歸零，已顯示死亡 UI 圖片；3 秒後回到重生點。", this);
         yield return new WaitForSeconds(RespawnDelay);
 
-        transform.position = deathPosition;
+        Vector3 respawnPosition = respawnPoint != null ? respawnPoint.position : initialPosition;
+        playerBody.position = respawnPosition;
+        if (playerRigidbody != null)
+        {
+            playerRigidbody.position = respawnPosition;
+            if (!playerRigidbody.isKinematic)
+            {
+                playerRigidbody.linearVelocity = Vector3.zero;
+                playerRigidbody.angularVelocity = Vector3.zero;
+            }
+        }
+        Physics.SyncTransforms();
         currentHealth = maxHealth;
         RestoreDeathVignette();
         SetDeathImage(false);
         isDead = false;
         SetPlayerMovementEnabled(true);
-        Debug.Log("【玩家】已在原地復活，血量與移動已恢復。", this);
+        Debug.Log("【玩家】已回到重生點，血量與移動已恢復。", this);
     }
 
     private void SetupDeathVignette()

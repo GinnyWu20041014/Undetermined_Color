@@ -114,12 +114,27 @@ public class AutoDepthSortManager : MonoBehaviour
 
             // cameraSpace.z 是物件沿鏡頭正前方的真正前後深度；
             // 不是受左右位置影響的直線距離。
-            float cameraDepth = targetCamera.transform
-                .InverseTransformPoint(sortingGroup.transform.position).z;
-            int sortingOrder = Mathf.RoundToInt(-cameraDepth * sortingScale);
+            int sortingOrder = GetSortingOrder(sortingGroup.transform.position);
 
             sortingGroup.sortingLayerName = sortingLayerName;
             sortingGroup.sortingOrder = sortingOrder;
         }
+    }
+
+    // Particle effects share the sprites' camera, layer and depth scale.
+    public bool ApplyDepthSorting(Renderer targetRenderer, Vector3 worldPosition, int orderOffset)
+    {
+        if (targetRenderer == null || !isActiveAndEnabled) return false;
+        if (targetCamera == null) targetCamera = Camera.main;
+        if (targetCamera == null) return false;
+        targetRenderer.sortingLayerName = sortingLayerName;
+        targetRenderer.sortingOrder = Mathf.Clamp(GetSortingOrder(worldPosition) + Mathf.Clamp(orderOffset, -32768, 32767), -32768, 32767);
+        return true;
+    }
+
+    private int GetSortingOrder(Vector3 worldPosition)
+    {
+        float cameraDepth = targetCamera.transform.InverseTransformPoint(worldPosition).z;
+        return Mathf.Clamp(Mathf.RoundToInt(-cameraDepth * sortingScale), -32768, 32767);
     }
 }

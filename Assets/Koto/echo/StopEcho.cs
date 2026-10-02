@@ -17,7 +17,7 @@ public sealed class StopEcho : MonoBehaviour, IItemPlacementListener
     [SerializeField] private ParticleSystem dissolveParticlePrefab = null;
     [SerializeField] private Color dissolveColor = new Color(0.65f, 0.9f, 1f, 1f);
 
-    private bool hasBeenUsed;
+    [SerializeField, HideInInspector] private bool hasBeenUsed;
     public bool IsConsumed => hasBeenUsed;
 
     private readonly List<SpriteRenderer> dissolvingSprites = new List<SpriteRenderer>();
@@ -46,6 +46,9 @@ public sealed class StopEcho : MonoBehaviour, IItemPlacementListener
         }
 
         hasBeenUsed = true;
+        EchoPickupState pickupState = GetComponentInParent<EchoPickupState>(true);
+        if (pickupState == null) pickupState = gameObject.AddComponent<EchoPickupState>();
+        pickupState.MarkConsumed();
         string targetName;
         if (doorMechanism != null)
         {
