@@ -160,9 +160,7 @@ public class ScanningSystem : MonoBehaviour
     {
         RenderPipelineManager.beginCameraRendering -= BeforeCameraRendering;
         Camera.onPreRender -= BeforeBuiltinCameraRendering;
-        if (IsScanning) SetScanning(false);
-        isRingAnimating = false;
-        if (ringRenderer != null) ringRenderer.enabled = false;
+        CloseScanningImmediately();
     }
 
     [Header("掃描顯示物件 Tag")]
@@ -181,6 +179,7 @@ public class ScanningSystem : MonoBehaviour
     private readonly RaycastHit[] surfaceHits = new RaycastHit[16];
     private readonly HashSet<GameObject> scanRevealObjects = new HashSet<GameObject>();
     private ItemPickupSystem itemPickupSystem;
+    private PlayerHealth playerHealth;
 
     private void Awake()
     {
@@ -192,6 +191,12 @@ public class ScanningSystem : MonoBehaviour
 
     private void Update()
     {
+        if (playerHealth == null) playerHealth = GetComponentInParent<PlayerHealth>(true);
+        if (playerHealth != null && playerHealth.IsDead)
+        {
+            CloseScanningImmediately();
+            return;
+        }
         UpdateRingTransform();
 
         if (Input.GetKeyDown(scanKey))
@@ -207,6 +212,11 @@ public class ScanningSystem : MonoBehaviour
     /// </summary>
     public void SetScanning(bool enabled)
     {
+        if (enabled)
+        {
+            if (playerHealth == null) playerHealth = GetComponentInParent<PlayerHealth>(true);
+            if (!isActiveAndEnabled || (playerHealth != null && playerHealth.IsDead)) return;
+        }
         if (IsScanning == enabled)
         {
             return;
@@ -231,6 +241,17 @@ public class ScanningSystem : MonoBehaviour
 
         SetScanPresentation(enabled);
         LogScanningStatus();
+    }
+
+    /// <summary>死亡或停用時立即關閉遮罩、回想顯示及光圈，不播放收縮動畫。</summary>
+    public void CloseScanningImmediately()
+    {
+        bool wasScanning = IsScanning;
+        IsScanning = false;
+        isRingAnimating = false;
+        if (ringRenderer != null) ringRenderer.enabled = false;
+        SetScanPresentation(false);
+        if (wasScanning) LogScanningStatus();
     }
 
     private void CreateRingRenderer()

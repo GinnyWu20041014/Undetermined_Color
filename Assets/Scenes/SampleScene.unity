@@ -2369,6 +2369,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   maxHealth: 100
+  resetSceneOnDeath: 1
   respawnPoint: {fileID: 783361599}
   hitRadius: 0.75
   deathImage: {fileID: 1200916792}
@@ -2378,6 +2379,7 @@ MonoBehaviour:
   deathVignetteSmoothness: 0.2
   deathVignetteColor: {r: 0, g: 0, b: 0, a: 1}
   playerMovement: {fileID: 510363719}
+  additionalDeathDisabledBehaviours: []
   lowHealthColor: {r: 1, g: 0, b: 0, a: 1}
   lowHealthFlashFrequency: 3
   criticalHealthColor: {r: 1, g: 0, b: 0, a: 1}
@@ -3061,6 +3063,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 4435436526537898479, guid: 1ec3135e16473b1419053db0e73ae5b4, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1979034510}
+    - targetCorrespondingSourceObject: {fileID: 4435436526537898479, guid: 1ec3135e16473b1419053db0e73ae5b4, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 783361599}
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 3262242003946971532, guid: 1ec3135e16473b1419053db0e73ae5b4, type: 3}
       insertIndex: -1
@@ -3125,7 +3130,7 @@ GameObject:
   m_Component:
   - component: {fileID: 783361599}
   m_Layer: 0
-  m_Name: relive
+  m_Name: relivepoint
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -3139,12 +3144,12 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 783361598}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 10.66, y: 0, z: -8.98}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalRotation: {x: -0.27781588, y: 0.36497167, z: -0.1150751, w: 0.8811196}
+  m_LocalPosition: {x: 3.6080272, y: -1.8999125, z: -2.4277067}
+  m_LocalScale: {x: 2.3406045, y: 2.3406045, z: 2.3406045}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 0}
+  m_Father: {fileID: 510363726}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &790662578 stripped
 Transform:
@@ -4738,7 +4743,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 0c2f3e8730cced14482863c9b36afa16, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 6.984627
+      value: 8.96
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 0c2f3e8730cced14482863c9b36afa16, type: 3}
       propertyPath: m_LocalPosition.y
@@ -8551,4 +8556,3 @@ SceneRoots:
   - {fileID: 1319744096}
   - {fileID: 1246031704}
   - {fileID: 867431077}
-  - {fileID: 783361599}

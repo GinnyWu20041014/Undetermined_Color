@@ -52,7 +52,8 @@ public class PlayerAttack : MonoBehaviour
     /// <summary>可由動畫事件或其他腳本呼叫的攻擊入口。</summary>
     public void TryAttack()
     {
-        PlayerHealth health = GetComponent<PlayerHealth>();
+        if (!isActiveAndEnabled) return;
+        PlayerHealth health = GetComponentInParent<PlayerHealth>(true);
         if (health != null && health.IsDead) return;
         if (scanningSystem != null && scanningSystem.IsScanning)
         {

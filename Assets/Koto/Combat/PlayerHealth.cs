@@ -1,8 +1,10 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 /// <summary>
 /// 玩家生命與圓形受擊範圍控制器。
@@ -14,8 +16,12 @@ public class PlayerHealth : MonoBehaviour
     [Tooltip("玩家復活時會回復至此血量。")]
     [SerializeField, Min(1)] private int maxHealth = 100;
 
+    [InspectorName("死亡後重置整個場景")]
+    [Tooltip("開啟時，死亡畫面結束後重新載入目前場景，恢復所有機關與回想的初始狀態。")]
+    [SerializeField] private bool resetSceneOnDeath = true;
+
     [InspectorName("死亡後重生點")]
-    [Tooltip("死亡後回到此物件的世界位置；未指定時回到玩家開場位置。請放在雷射範圍外。")]
+    [Tooltip("僅在關閉『死亡後重置整個場景』時使用；未指定時回到玩家開場位置。")]
     [SerializeField] private Transform respawnPoint = null;
 
     [InspectorName("玩家受擊半徑")]
@@ -50,6 +56,10 @@ public class PlayerHealth : MonoBehaviour
     [InspectorName("玩家移動腳本")]
     [Tooltip("玩家死亡時會停用、鏡頭恢復後會重新啟用；未指定時會自動尋找 PlayerMovement。")]
     [SerializeField] private PlayerMovement playerMovement = null;
+
+    [Header("死亡停用功能")]
+    [Tooltip("移動、攻擊、掃描及回想撿取／放置會自動停用。其他玩家功能可加入此清單；復活時恢復原本啟用狀態。")]
+    [SerializeField] private List<MonoBehaviour> additionalDeathDisabledBehaviours = new List<MonoBehaviour>();
 
     [Header("低血量警示效果")]
     [InspectorName("低血量顏色")]
@@ -87,6 +97,8 @@ public class PlayerHealth : MonoBehaviour
     private Color originalVignetteColor;
     private bool vignetteSmoothnessWasOverridden;
     private float originalVignetteSmoothness;
+    private readonly Dictionary<MonoBehaviour, bool> previousBehaviourStates = new Dictionary<MonoBehaviour, bool>();
+    private RigidbodyConstraints originalBodyConstraints;
 
     /// <summary>供敵人判斷是否應停止追擊玩家。</summary>
     public bool IsDead => isDead;
@@ -160,13 +172,17 @@ public class PlayerHealth : MonoBehaviour
     private IEnumerator DeathAndRespawn()
     {
         isDead = true;
-        SetPlayerMovementEnabled(false);
+        StopPlayerFunctions();
         SetLowHealthScreen(false);
         yield return StartCoroutine(PlayDeathVignette());
         SetDeathImage(true);
 
-        Debug.Log("【玩家】血量歸零，已顯示死亡 UI 圖片；3 秒後回到重生點。", this);
+        Debug.Log(resetSceneOnDeath
+            ? "【玩家】已顯示死亡畫面；3 秒後重置整個場景。"
+            : "【玩家】已顯示死亡畫面；3 秒後回到重生點。", this);
         yield return new WaitForSeconds(RespawnDelay);
+
+        if (resetSceneOnDeath && TryReloadCurrentScene()) yield break;
 
         Vector3 respawnPosition = respawnPoint != null ? respawnPoint.position : initialPosition;
         playerBody.position = respawnPosition;
@@ -184,8 +200,43 @@ public class PlayerHealth : MonoBehaviour
         RestoreDeathVignette();
         SetDeathImage(false);
         isDead = false;
-        SetPlayerMovementEnabled(true);
+        RestorePlayerFunctions();
         Debug.Log("【玩家】已回到重生點，血量與移動已恢復。", this);
+    }
+
+    private bool TryReloadCurrentScene()
+    {
+        Scene scene = gameObject.scene;
+        if (!scene.IsValid() || string.IsNullOrEmpty(scene.path))
+        {
+            Debug.LogError("【玩家】場景尚未儲存，無法重新載入；本次改用重生點復活。", this);
+            return false;
+        }
+
+        // Restore the runtime Volume before reloading so death darkness cannot leak.
+        RestoreDeathVignette();
+#if UNITY_EDITOR
+        // Also support testing a saved scene that is not in the build scene list.
+        if (scene.buildIndex < 0)
+        {
+            UnityEditor.SceneManagement.EditorSceneManager.LoadSceneInPlayMode(
+                scene.path, new LoadSceneParameters(LoadSceneMode.Single));
+            return true;
+        }
+#endif
+        if (!Application.CanStreamedLevelBeLoaded(scene.path))
+        {
+            Debug.LogError($"【玩家】場景 {scene.path} 不在啟用的建置場景清單；本次改用重生點復活。", this);
+            return false;
+        }
+        SceneManager.LoadScene(scene.path, LoadSceneMode.Single);
+        return true;
+    }
+
+    private void OnDestroy()
+    {
+        RestoreDeathVignette();
+        if (lowHealthScreen != null) Destroy(lowHealthScreen);
     }
 
     private void SetupDeathVignette()
@@ -317,17 +368,45 @@ public class PlayerHealth : MonoBehaviour
         }
     }
 
-    private void SetPlayerMovementEnabled(bool enabled)
+    private void StopPlayerFunctions()
     {
-        if (playerMovement != null)
+        previousBehaviourStates.Clear();
+        foreach (MonoBehaviour behaviour in playerBody.GetComponentsInChildren<MonoBehaviour>(true))
         {
-            playerMovement.enabled = enabled;
+            if (behaviour is PlayerMovement || behaviour is PlayerAttack ||
+                behaviour is ScanningSystem || behaviour is ItemPickupSystem)
+                DisablePlayerBehaviour(behaviour);
         }
+        DisablePlayerBehaviour(playerMovement);
+        foreach (MonoBehaviour behaviour in additionalDeathDisabledBehaviours)
+            DisablePlayerBehaviour(behaviour);
 
-        if (!enabled && playerRigidbody != null)
+        if (playerRigidbody != null)
         {
-            playerRigidbody.linearVelocity = new Vector3(0f, playerRigidbody.linearVelocity.y, 0f);
+            originalBodyConstraints = playerRigidbody.constraints;
+            if (!playerRigidbody.isKinematic)
+            {
+                playerRigidbody.linearVelocity = Vector3.zero;
+                playerRigidbody.angularVelocity = Vector3.zero;
+            }
+            playerRigidbody.constraints = RigidbodyConstraints.FreezeAll;
         }
+    }
+
+    private void DisablePlayerBehaviour(MonoBehaviour behaviour)
+    {
+        if (behaviour == null || behaviour == this || previousBehaviourStates.ContainsKey(behaviour)) return;
+        previousBehaviourStates.Add(behaviour, behaviour.enabled);
+        if (behaviour is ScanningSystem scanning) scanning.CloseScanningImmediately();
+        behaviour.enabled = false;
+    }
+
+    private void RestorePlayerFunctions()
+    {
+        if (playerRigidbody != null) playerRigidbody.constraints = originalBodyConstraints;
+        foreach (var entry in previousBehaviourStates)
+            if (entry.Key != null) entry.Key.enabled = entry.Value;
+        previousBehaviourStates.Clear();
     }
 
     private void OnDrawGizmosSelected()

@@ -57,4 +57,8 @@ SampleScene 的 RedParticleRay 已掛上 **Laser Death Trigger**。玩家的 3D 
 
 **玩家碰撞圖層** 必須包含玩家 Collider 的圖層；**額外碰觸半徑** 可增加核心判定範圍。判定使用沿射線的 3D 膠囊範圍，端點會延伸一個判定半徑。玩家 Collider 必須位於 PlayerHealth 本身、子物件或同一 Rigidbody 下。其他雷射可透過 Add Component 加上 LaserDeathTrigger。
 
-選取 **player → Player Health → 死亡後重生點**，拖入代表重生位置的場景物件。SampleScene 已連結 **PlayerRespawnPoint**，預設位於玩家開場位置；移動它即可調整復活位置。請將它放在雷射範圍外。未指定重生點時回到玩家開場位置，所有死亡來源都使用這個設定。重生會恢復滿血、移動並清除 Rigidbody 速度。
+選取 **player → Player Health → 死亡後重置整個場景**，目前預設開啟：顯示死亡畫面並等待 3 秒後重新載入目前場景，玩家回到場景儲存的起始位置，雙門、雷射、敵人、地圖回想及玩家物品列表都恢復初始狀態。請在停止 Play 時儲存場景；重置以已儲存的場景為準。
+
+關閉場景重置時，才會使用 **死亡後重生點**。SampleScene 已連結 **PlayerRespawnPoint**，移動它即可調整復活位置，請放在雷射範圍外。未指定重生點時回到玩家開場位置；重生會恢復滿血、移動並清除 Rigidbody 速度。
+
+玩家死亡的當下會停止移動、攻擊、掃描、回想撿取與放置，立即移除掃描遮罩和光圈，並凍結玩家 Rigidbody。死亡動畫與場景重置流程仍會執行。其他自訂玩家功能可加入 **Player Health → 死亡停用功能 → Additional Death Disabled Behaviours** 清單。關閉場景重置而使用原地復活流程時，會恢復各元件死亡前的啟用狀態，掃描維持關閉。

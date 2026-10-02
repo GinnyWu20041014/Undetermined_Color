@@ -46,6 +46,13 @@ public class ItemPickupSystem : MonoBehaviour
     [SerializeField] private Image thirdSlotImage = null;
 
     [SerializeField, HideInInspector] private GameObject[] pickedItems = new GameObject[3];
+    private PlayerHealth playerHealth;
+
+    private bool CanInteract()
+    {
+        if (playerHealth == null) playerHealth = GetComponentInParent<PlayerHealth>(true);
+        return isActiveAndEnabled && (playerHealth == null || !playerHealth.IsDead);
+    }
 
     /// <summary>掃描顯示時直接核對玩家列表，包含回想的父子顯示物件。</summary>
     public bool IsItemInInventory(GameObject target)
@@ -75,6 +82,7 @@ public class ItemPickupSystem : MonoBehaviour
 
     private void Update()
     {
+        if (!CanInteract()) return;
         if (Input.GetKeyDown(pickupKey))
         {
             TryPickupNearestItem();
@@ -89,6 +97,7 @@ public class ItemPickupSystem : MonoBehaviour
     /// <summary>可由 UI 按鈕或其他腳本呼叫的撿取入口。</summary>
     public void TryPickupNearestItem()
     {
+        if (!CanInteract()) return;
         if (scanningSystem == null || !scanningSystem.IsScanning)
         {
             Debug.Log("【撿取系統】目前不是掃描模式，無法撿取物品。", this);
@@ -134,6 +143,7 @@ public class ItemPickupSystem : MonoBehaviour
     /// <summary>將最先撿取、尚未放置的物品放到範圍內最近的指定 Tag 目標。</summary>
     public void TryPlaceFirstItem()
     {
+        if (!CanInteract()) return;
         int pickedSlotIndex = GetFirstPickedSlotIndex();
         if (pickedSlotIndex < 0)
         {
