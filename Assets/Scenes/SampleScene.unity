@@ -2380,9 +2380,9 @@ MonoBehaviour:
   deathVignetteColor: {r: 0, g: 0, b: 0, a: 1}
   playerMovement: {fileID: 510363719}
   additionalDeathDisabledBehaviours: []
-  lowHealthColor: {r: 1, g: 0, b: 0, a: 1}
+  lowHealthColor: {r: 0.74509805, g: 0.19607843, b: 0.19607843, a: 1}
   lowHealthFlashFrequency: 3
-  criticalHealthColor: {r: 1, g: 0, b: 0, a: 1}
+  criticalHealthColor: {r: 0.74509805, g: 0.19607843, b: 0.19607843, a: 1}
   criticalHealthFlashFrequency: 6
 --- !u!114 &510363721
 MonoBehaviour:
@@ -8440,7 +8440,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 101447869152371862, guid: f788505e94c760c43bdb72b990d8ac80, type: 3}
       propertyPath: m_IsActive
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 101447869152371862, guid: f788505e94c760c43bdb72b990d8ac80, type: 3}
       propertyPath: m_TagString
@@ -8448,7 +8448,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1270142193612848373, guid: f788505e94c760c43bdb72b990d8ac80, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 43.81839
+      value: 12.5
       objectReference: {fileID: 0}
     - target: {fileID: 1270142193612848373, guid: f788505e94c760c43bdb72b990d8ac80, type: 3}
       propertyPath: m_LocalPosition.y
@@ -8489,7 +8489,7 @@ PrefabInstance:
     - target: {fileID: 4985212888109410025, guid: f788505e94c760c43bdb72b990d8ac80, type: 3}
       propertyPath: 'lightSources.Array.data[0]'
       value: 
-      objectReference: {fileID: 2034364463}
+      objectReference: {fileID: 1188862905}
     - target: {fileID: 5801753373672896940, guid: f788505e94c760c43bdb72b990d8ac80, type: 3}
       propertyPath: moveSpeed
       value: 1
