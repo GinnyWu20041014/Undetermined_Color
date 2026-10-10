@@ -2334,7 +2334,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: f48a915edc062894091053fb283a86b3, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 10.4
+      value: 10.34
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: f48a915edc062894091053fb283a86b3, type: 3}
       propertyPath: m_LocalPosition.y
@@ -2376,6 +2376,10 @@ PrefabInstance:
       propertyPath: m_ConstrainProportionsScale
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: -7511558181221131132, guid: f48a915edc062894091053fb283a86b3, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: c1ce2e1d13ac9184eb8a842628cfc7ea, type: 2}
     - target: {fileID: 919132149155446097, guid: f48a915edc062894091053fb283a86b3, type: 3}
       propertyPath: m_Name
       value: door
@@ -2694,7 +2698,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: f48a915edc062894091053fb283a86b3, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 12.9
+      value: 12.86
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: f48a915edc062894091053fb283a86b3, type: 3}
       propertyPath: m_LocalPosition.y
@@ -2736,6 +2740,10 @@ PrefabInstance:
       propertyPath: m_ConstrainProportionsScale
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: -7511558181221131132, guid: f48a915edc062894091053fb283a86b3, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: c1ce2e1d13ac9184eb8a842628cfc7ea, type: 2}
     - target: {fileID: 919132149155446097, guid: f48a915edc062894091053fb283a86b3, type: 3}
       propertyPath: m_Name
       value: door (1)
