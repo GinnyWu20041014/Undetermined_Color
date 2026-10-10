@@ -1,7 +1,7 @@
 using UnityEngine;
 
 /// <summary>
-/// 單一路燈控制器：直接監聽指定機關，不需設定 Tag。
+/// 單一路燈控制器：監聽指定機關；放置目標以 placementTarget Tag 選取。
 /// </summary>
 public class StreetLampController : MonoBehaviour
 {
@@ -44,6 +44,30 @@ public class StreetLampController : MonoBehaviour
     /// <summary>供路燈解謎讀取目前燈光圖片是亮起或關閉。</summary>
     public bool IsLightVisible => IsLightImageVisible();
 
+    /// <summary>回響必須作用於路燈實際監聽的機關，避免選到其他子物件的機關。</summary>
+    public MechanismStateController Mechanism
+    {
+        get
+        {
+            if (mechanismStateController == null)
+            {
+                if (lightImageObject != null)
+                    mechanismStateController = lightImageObject.GetComponent<MechanismStateController>();
+                if (mechanismStateController == null)
+                    mechanismStateController = GetComponent<MechanismStateController>();
+            }
+            return mechanismStateController;
+        }
+    }
+
+    /// <summary>取得標記放置目標所屬路燈的機關，包含燈光已熄滅的情況。</summary>
+    public static StreetLampController FindOnPlacementTarget(GameObject target)
+    {
+        if (target == null) return null;
+        StreetLampController lamp = target.GetComponentInParent<StreetLampController>(true);
+        return lamp != null ? lamp : target.GetComponentInChildren<StreetLampController>(true);
+    }
+
     private void Awake()
     {
         previousFaultMode = faultMode;
@@ -51,7 +75,7 @@ public class StreetLampController : MonoBehaviour
 
     private void OnEnable()
     {
-        if (mechanismStateController == null)
+        if (Mechanism == null)
         {
             return;
         }

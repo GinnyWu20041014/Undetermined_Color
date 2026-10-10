@@ -16,17 +16,33 @@ public class WaitEcho : MonoBehaviour, IItemPlacementListener
 {
     [Header("機關搜尋")]
     [InspectorName("機關作用範圍")]
-    [Tooltip("放下回響後，若放置目標沒有解謎門或機關控制器，會在此範圍內選取最近的目標。")]
+    [Tooltip("初始回響在此 X/Z 平面半徑內，只固定最近的 placementTarget 機關。")]
     [Min(0.01f)]
     [SerializeField] private float mechanismSearchRange = 2f;
 
     private MechanismStateController pausedMechanism = null;
     private PuzzleDoor heldDoor = null;
     private bool isWaiting;
+    private bool initialPlacementChecked;
+
+    private void Start() => InitializeNearbyMechanism();
+    private void OnDestroy() => RetrieveEcho();
+
+    public void InitializeNearbyMechanism()
+    {
+        if (initialPlacementChecked) return;
+        initialPlacementChecked = true;
+        EchoPickupState state = GetComponentInParent<EchoPickupState>(true);
+        if (isWaiting || (state != null && (state.HasBeenPickedUp || state.IsInInventory || state.IsConsumed))) return;
+        GameObject target = EchoInitialPlacement.FindNearest(transform.position, mechanismSearchRange,
+            candidate => EchoInitialPlacement.FindDoor(candidate) != null || EchoInitialPlacement.FindMechanism(candidate) != null);
+        if (target != null) StartWaitingAt(transform.position, target);
+    }
 
     /// <summary>由物品放置系統呼叫；會選取放置位置對應的一個機關。</summary>
     public void OnItemPlaced(GameObject placementTarget)
     {
+        initialPlacementChecked = true;
         Vector3 placementPosition = placementTarget != null
             ? placementTarget.transform.position
             : transform.position;
@@ -36,6 +52,7 @@ public class WaitEcho : MonoBehaviour, IItemPlacementListener
     /// <summary>由物品撿取系統呼叫；恢復本回響先前選取的機關。</summary>
     public void OnItemPickedUp()
     {
+        initialPlacementChecked = true;
         RetrieveEcho();
     }
 
@@ -75,14 +92,30 @@ public class WaitEcho : MonoBehaviour, IItemPlacementListener
             return;
         }
 
-        heldDoor = FindDoorOnPlacementTarget(placementTarget);
-        pausedMechanism = heldDoor == null
-            ? FindControllerOnPlacementTarget(placementTarget)
-            : null;
-        if (heldDoor == null && pausedMechanism == null)
+        if (placementTarget == null)
+            placementTarget = EchoInitialPlacement.FindNearest(position, mechanismSearchRange,
+                candidate => EchoInitialPlacement.FindDoor(candidate) != null || EchoInitialPlacement.FindMechanism(candidate) != null);
+        if (placementTarget == null) return;
+
+        StreetLampController lamp = StreetLampController.FindOnPlacementTarget(placementTarget);
+        if (lamp != null)
         {
-            heldDoor = FindNearestDoor(position);
+            pausedMechanism = lamp.Mechanism;
+            if (pausedMechanism == null)
+            {
+                Debug.LogWarning("【等待回響】放置目標的路燈未連結機關狀態控制器。", lamp);
+                return;
+            }
+            pausedMechanism.PauseMechanism(this);
+            isWaiting = true;
+            Debug.Log($"【等待回響】已固定路燈目前狀態：{lamp.name}。", this);
+            return;
         }
+
+        heldDoor = EchoInitialPlacement.FindDoor(placementTarget);
+        pausedMechanism = heldDoor == null
+            ? EchoInitialPlacement.FindMechanism(placementTarget)
+            : null;
 
         if (heldDoor != null)
         {
@@ -94,10 +127,6 @@ public class WaitEcho : MonoBehaviour, IItemPlacementListener
 
         if (pausedMechanism == null)
         {
-            pausedMechanism = FindNearestMechanism(position);
-        }
-        if (pausedMechanism == null)
-        {
             Debug.LogWarning("【等待回響】放置位置附近找不到可作用的機關。", this);
             return;
         }
@@ -107,92 +136,4 @@ public class WaitEcho : MonoBehaviour, IItemPlacementListener
         Debug.Log($"【等待回響】已作用於機關：{pausedMechanism.name}。", this);
     }
 
-    private PuzzleDoor FindNearestDoor(Vector3 position)
-    {
-        float range = Mathf.Max(0.01f, mechanismSearchRange);
-        float nearestDistanceSquared = range * range;
-        PuzzleDoor nearest = null;
-        foreach (PuzzleDoor door in FindObjectsByType<PuzzleDoor>(FindObjectsSortMode.None))
-        {
-            Vector3 offset = door.transform.position - position;
-            offset.y = 0f;
-            float distanceSquared = offset.sqrMagnitude;
-            if (distanceSquared <= nearestDistanceSquared)
-            {
-                nearestDistanceSquared = distanceSquared;
-                nearest = door;
-            }
-        }
-
-        return nearest;
-    }
-
-    private static PuzzleDoor FindDoorOnPlacementTarget(GameObject placementTarget)
-    {
-        if (placementTarget == null)
-        {
-            return null;
-        }
-
-        PuzzleDoor door = placementTarget.GetComponent<PuzzleDoor>();
-        if (door == null)
-        {
-            door = placementTarget.GetComponentInParent<PuzzleDoor>();
-        }
-
-        if (door != null)
-        {
-            return door;
-        }
-
-        foreach (PuzzleDoor candidate in FindObjectsByType<PuzzleDoor>(FindObjectsSortMode.None))
-        {
-            if (candidate.IsEchoPlacementTarget(placementTarget))
-            {
-                return candidate;
-            }
-        }
-
-        return null;
-    }
-
-    private static MechanismStateController FindControllerOnPlacementTarget(GameObject placementTarget)
-    {
-        if (placementTarget == null)
-        {
-            return null;
-        }
-
-        MechanismStateController controller = placementTarget.GetComponent<MechanismStateController>();
-        if (controller == null)
-        {
-            controller = placementTarget.GetComponentInParent<MechanismStateController>();
-        }
-
-        return controller != null
-            ? controller
-            : placementTarget.GetComponentInChildren<MechanismStateController>(true);
-    }
-
-    private MechanismStateController FindNearestMechanism(Vector3 position)
-    {
-        float searchRange = Mathf.Max(0.01f, mechanismSearchRange);
-        float nearestDistanceSquared = searchRange * searchRange;
-        MechanismStateController nearestMechanism = null;
-
-        foreach (MechanismStateController controller in FindObjectsByType<MechanismStateController>(FindObjectsSortMode.None))
-        {
-            Vector3 offset = controller.transform.position - position;
-            offset.y = 0f;
-            float distanceSquared = offset.sqrMagnitude;
-
-            if (distanceSquared <= nearestDistanceSquared)
-            {
-                nearestDistanceSquared = distanceSquared;
-                nearestMechanism = controller;
-            }
-        }
-
-        return nearestMechanism;
-    }
 }

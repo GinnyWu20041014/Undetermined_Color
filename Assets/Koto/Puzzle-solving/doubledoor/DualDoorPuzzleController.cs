@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>每隔固定時間切換兩扇門；等待回想可固定單扇門，停止回想可永久停止整個機關。</summary>
@@ -21,9 +22,11 @@ public sealed class DualDoorPuzzleController : MonoBehaviour
 
     private Coroutine switchingRoutine;
     private bool isPermanentlyStopped;
+    private readonly HashSet<UnityEngine.Object> pauseRequesters = new HashSet<UnityEngine.Object>();
 
     public bool IsSolved { get; private set; }
     public bool IsPermanentlyStopped => isPermanentlyStopped;
+    public bool IsPaused => pauseRequesters.Count > 0;
     public event Action<bool> PuzzleStateChanged;
 
     private void OnEnable()
@@ -51,7 +54,7 @@ public sealed class DualDoorPuzzleController : MonoBehaviour
         while (true)
         {
             yield return new WaitForSeconds(switchInterval);
-            if (isPermanentlyStopped)
+            if (isPermanentlyStopped || IsPaused)
             {
                 continue;
             }
@@ -72,6 +75,17 @@ public sealed class DualDoorPuzzleController : MonoBehaviour
     private void HandleDoorStateChanged(PuzzleDoor.DoorState state)
     {
         EvaluatePuzzle();
+    }
+
+    /// <summary>初始停止回想只暫停此機關，撿取後可恢復。</summary>
+    public void PauseMechanism(UnityEngine.Object requester)
+    {
+        if (requester != null && !isPermanentlyStopped) pauseRequesters.Add(requester);
+    }
+
+    public void ResumeMechanism(UnityEngine.Object requester)
+    {
+        if (requester != null) pauseRequesters.Remove(requester);
     }
 
     /// <summary>由停止回想永久停止此雙門機關，門維持當前開關狀態。</summary>
