@@ -20,6 +20,10 @@ public sealed class StreetLampPuzzleController : MonoBehaviour
     [Tooltip("依照對照組的相同順序放入機關狀態控制器。")]
     [SerializeField] private List<MechanismStateController> operatedMechanisms = new List<MechanismStateController>();
 
+    /// <summary>提供獨立判定腳本讀取既有兩組設定。</summary>
+    public IReadOnlyList<MechanismStateController> ReferenceMechanisms => referenceMechanisms;
+    public IReadOnlyList<MechanismStateController> OperatedMechanisms => operatedMechanisms;
+
     private readonly HashSet<MechanismStateController> subscribedMechanisms =
         new HashSet<MechanismStateController>();
 
@@ -160,7 +164,7 @@ public sealed class StreetLampPuzzleController : MonoBehaviour
         }
     }
 
-    private static StreetLampController FindStreetLamp(MechanismStateController mechanism)
+    public static StreetLampController FindStreetLamp(MechanismStateController mechanism)
     {
         StreetLampController lamp = mechanism.GetComponent<StreetLampController>();
         if (lamp == null)

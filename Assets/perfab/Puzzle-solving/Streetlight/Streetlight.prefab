@@ -10,7 +10,6 @@ GameObject:
   m_Component:
   - component: {fileID: 5969386321907992855}
   - component: {fileID: 7059754031523872273}
-  - component: {fileID: 5939093109304844164}
   m_Layer: 0
   m_Name: Streetlight
   m_TagString: placementTarget
@@ -51,19 +50,6 @@ MonoBehaviour:
   lightImageObject: {fileID: 4280281544755240541}
   faultMode: 0
   flickerInterval: 1.5
---- !u!114 &5939093109304844164
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 141636697477178705}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 760e8e4729a943b691bb08bda2ba06c9, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  currentState: 0
 --- !u!1 &5814140760540969786
 GameObject:
   m_ObjectHideFlags: 0
