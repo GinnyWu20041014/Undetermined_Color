@@ -634,13 +634,13 @@ public sealed class EnemyAnimationController : MonoBehaviour
 
             if (wasVisible)
             {
-                Debug.Log("【敵人】已離開光線照射範圍，影紋本體已隱藏。", this);
+                Debug.Log("【敵人】本體顯示條件已結束，影紋本體已隱藏。", this);
             }
 
             return;
         }
 
-        // 僅在「未受光 → 受光」的瞬間啟動一次，不能在每幀把 call 覆蓋成 stand。
+        // 僅在本體由隱藏轉為顯示時召喚；失光倒數期間重新受光不重播。
         if (!bodyWasVisible || !body.activeSelf)
         {
             SetActive(body, true);

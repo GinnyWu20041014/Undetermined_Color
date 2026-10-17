@@ -49,15 +49,15 @@ public sealed class EnemyStateHealth : MonoBehaviour
 
     [Header("怪物本體與光源")]
     [InspectorName("怪物本體")]
-    [Tooltip("放入身後的影紋／怪物本體；僅在受到指定光源照射時顯示。")]
+    [Tooltip("放入身後的影紋／怪物本體；受光時持續顯示，失去光照 3 秒後隱藏。")]
     [SerializeField] private GameObject body = null;
 
     [InspectorName("本體受擊半徑")]
-    [Tooltip("以本體為中心的圓形受擊範圍半徑；本體受光顯示時才會生效。")]
+    [Tooltip("以本體為中心的圓形受擊範圍半徑；本體顯示期間才會生效。")]
     [SerializeField, Min(0.01f)] private float bodyHitRadius = 0.75f;
 
     [InspectorName("偵測光源")]
-    [Tooltip("可增加多個 Light；本體在任一光源照射範圍內時顯示。")]
+    [Tooltip("可增加多個 Light；任一光源照射時持續顯示，全部失去光照 3 秒後隱藏。")]
     [SerializeField] private Light[] lightSources = System.Array.Empty<Light>();
 
     private int entityHealth;
@@ -74,6 +74,9 @@ public sealed class EnemyStateHealth : MonoBehaviour
 
     private bool initialized;
     private Coroutine reviveRoutine;
+    private const float BodyLightLossDelay = 3f;
+    private bool bodyHasBeenIlluminated;
+    private float bodyLightLostAt = float.PositiveInfinity;
 
     public int AttackPower => attackPower;
     public EnemyStatus Status => status;
@@ -81,7 +84,8 @@ public sealed class EnemyStateHealth : MonoBehaviour
     public bool IsEntityDefeated => entityDefeated;
     public GameObject Entity => entity;
     public GameObject Body => body;
-    public bool BodyCanAppear => isActiveAndEnabled && !IsFriendly && !entityDefeated && IsBodyIlluminated();
+    public bool BodyCanAppear => isActiveAndEnabled && !IsFriendly && !entityDefeated &&
+        bodyHasBeenIlluminated && Time.time < bodyLightLostAt + BodyLightLossDelay;
     public bool BodyCanBeHit => BodyCanAppear && body != null && body.activeInHierarchy;
 
     public event Action CombatInterrupted;
@@ -89,6 +93,35 @@ public sealed class EnemyStateHealth : MonoBehaviour
     public event Action Revived;
 
     private void Start() => Initialize();
+
+    private void Update() => UpdateBodyIllumination();
+
+    private void OnDisable() => ResetBodyIllumination();
+
+    private void UpdateBodyIllumination()
+    {
+        if (IsFriendly || entityDefeated || body == null)
+        {
+            ResetBodyIllumination();
+            return;
+        }
+
+        if (IsBodyIlluminated())
+        {
+            bodyHasBeenIlluminated = true;
+            bodyLightLostAt = float.PositiveInfinity;
+        }
+        else if (bodyHasBeenIlluminated && float.IsPositiveInfinity(bodyLightLostAt))
+        {
+            bodyLightLostAt = Time.time;
+        }
+    }
+
+    private void ResetBodyIllumination()
+    {
+        bodyHasBeenIlluminated = false;
+        bodyLightLostAt = float.PositiveInfinity;
+    }
 
     public void Initialize()
     {
@@ -102,6 +135,7 @@ public sealed class EnemyStateHealth : MonoBehaviour
             entityOriginalSprite = entityRenderer != null ? entityRenderer.sprite : null;
         }
         ApplyStatusVisuals();
+        UpdateBodyIllumination();
     }
 
     public void TakeDamage(int damage)
@@ -113,6 +147,7 @@ public sealed class EnemyStateHealth : MonoBehaviour
         if (entityHealth != 0) return;
 
         entityDefeated = true;
+        ResetBodyIllumination();
         CombatInterrupted?.Invoke();
         reviveRoutine = StartCoroutine(ReviveEntity());
     }
@@ -168,6 +203,7 @@ public sealed class EnemyStateHealth : MonoBehaviour
             reviveRoutine = null;
         }
         status = EnemyStatus.友好狀態;
+        ResetBodyIllumination();
         entityDefeated = false;
         CombatInterrupted?.Invoke();
         ApplyStatusVisuals();
