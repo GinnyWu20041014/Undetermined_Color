@@ -167,11 +167,6 @@ public sealed class EnemyController : MonoBehaviour
     [SerializeField, Min(0f)] private float moveSpeed = 2f;
 
     [HideInInspector]
-    [InspectorName("移動區域")]
-    [Tooltip("可增加多個 Collider。敵人不追蹤玩家時，會在這些區域內隨機移動。")]
-    [SerializeField] private Collider[] movementAreas = System.Array.Empty<Collider>();
-
-    [HideInInspector]
     [Header("狀態與數值")]
     [InspectorName("目前狀態")]
     [Tooltip("敵對狀態會偵測、追蹤並攻擊玩家；友好狀態只會遊蕩。")]
@@ -204,12 +199,8 @@ public sealed class EnemyController : MonoBehaviour
     [SerializeField, Min(0.01f)] private float entityHitRadius = 0.75f;
 
     [HideInInspector]
-    [InspectorName("NPC 型態")]
-    [Tooltip("放入友好狀態時要替換實體顯示的 NPC Sprite。")]
-    [SerializeField] private Sprite normalNpcSprite = null;
-
-    [HideInInspector]
-    // 舊場景的 NPC 物件保留為隱藏參考，避免與新的 NPC Sprite 同時顯示。
+    [InspectorName("NPC 物件")]
+    [Tooltip("放入友好狀態時顯示的 NPC GameObject 或 Prefab。")]
     [SerializeField] private GameObject normalNpc = null;
 
     [HideInInspector]

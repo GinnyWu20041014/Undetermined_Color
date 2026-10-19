@@ -8,6 +8,27 @@ using UnityEngine.Serialization;
 [AddComponentMenu("Koto/Combat/敵人動畫控制")]
 public sealed class EnemyAnimationController : MonoBehaviour
 {
+    [Header("NPC 待機與行走")]
+    [InspectorName("NPC 動畫控制器")]
+    [Tooltip("可指定場景中 NPC 的 Animator；留空時自動取得 NPC 物件或生成實例下的 Animator。")]
+    [SerializeField] private Animator npcAnimator = null;
+
+    [InspectorName("NPC 移動參數名稱")]
+    [Tooltip("NPC Animator 的 Bool 參數。存在時以此參數切換行走／待機；留空或找不到時使用下方狀態名稱。")]
+    [SerializeField] private string npcMovingBoolParameterName = "isMoving";
+
+    [InspectorName("NPC 待機動畫狀態名稱")]
+    [Tooltip("Animator 的完整狀態名稱，例如 Base Layer.stand npc2。")]
+    [SerializeField] private string npcIdleAnimationStateName = "Base Layer.stand npc2";
+
+    [InspectorName("NPC 行走動畫狀態名稱")]
+    [Tooltip("Animator 的完整狀態名稱，例如 Base Layer.walk npc2。")]
+    [SerializeField] private string npcWalkAnimationStateName = "Base Layer.walk npc2";
+
+    private Animator resolvedNpcAnimator;
+    private int npcAnimationStateHash;
+    private bool hasNpcAnimationState;
+
     [Header("受光召喚動畫")]
     [InspectorName("實體召喚動畫狀態名稱")]
     [Tooltip("影紋首次受到光線照射時，實體要播放的完整 Animator 狀態名稱。Enemy2 預設為 Base Layer.call。")]
@@ -164,6 +185,7 @@ public sealed class EnemyAnimationController : MonoBehaviour
         {
             state.CombatInterrupted += OnCombatInterrupted;
             state.Revived += OnRevived;
+            state.BecameFriendly += OnBecameFriendly;
         }
         if (movement != null) movement.Moved += OnMoved;
     }
@@ -174,6 +196,7 @@ public sealed class EnemyAnimationController : MonoBehaviour
         {
             state.CombatInterrupted -= OnCombatInterrupted;
             state.Revived -= OnRevived;
+            state.BecameFriendly -= OnBecameFriendly;
         }
         if (movement != null) movement.Moved -= OnMoved;
     }
@@ -212,6 +235,12 @@ public sealed class EnemyAnimationController : MonoBehaviour
         SetEntityLocomotionAnimation(false);
     }
 
+    private void OnBecameFriendly()
+    {
+        hasNpcAnimationState = false;
+        SetNpcLocomotionAnimation(false);
+    }
+
     private void OnDisable()
     {
         Unbind();
@@ -221,6 +250,9 @@ public sealed class EnemyAnimationController : MonoBehaviour
         hasEntityAnimationState = false;
         hasBodyAnimationState = false;
         bodyWasVisible = false;
+        if (resolvedNpcAnimator != null && resolvedNpcAnimator.isActiveAndEnabled)
+            TrySetBoolParameter(resolvedNpcAnimator, npcMovingBoolParameterName, false);
+        hasNpcAnimationState = false;
     }
 
     public bool TryPlayEntityAttack()
@@ -571,6 +603,11 @@ public sealed class EnemyAnimationController : MonoBehaviour
 
     public void SetEntityLocomotionAnimation(bool isMoving)
     {
+        if (state != null && state.IsFriendly)
+        {
+            SetNpcLocomotionAnimation(isMoving);
+            return;
+        }
         if (isEntityAttacking || isEntitySummoning ||
             (state != null && state.IsEntityDefeated) || entityAttackAnimator == null)
         {
@@ -591,6 +628,28 @@ public sealed class EnemyAnimationController : MonoBehaviour
             : GetEntityIdleAnimationStateName();
         // 停止移動或一次性動畫結束時直接回到正確待機，避免 attack 固定回到錯誤的待機狀態。
         PlayEntityAnimatorState(targetStateName, "實體待機／移動", false, false);
+    }
+
+    private void SetNpcLocomotionAnimation(bool isMoving)
+    {
+        if (!isActiveAndEnabled || state == null || !state.IsFriendly) return;
+        Animator target = npcAnimator;
+        if (target == null && state.NpcInstance != null)
+            target = state.NpcInstance.GetComponentInChildren<Animator>(true);
+        if (resolvedNpcAnimator != target)
+        {
+            resolvedNpcAnimator = target;
+            hasNpcAnimationState = false;
+        }
+        if (target == null || !target.isActiveAndEnabled || target.runtimeAnimatorController == null) return;
+
+        if (TrySetBoolParameter(target, npcMovingBoolParameterName, isMoving))
+        {
+            hasNpcAnimationState = false;
+            return;
+        }
+        PlayAnimatorState(target, isMoving ? npcWalkAnimationStateName : npcIdleAnimationStateName,
+            "NPC 待機／移動", false, false, ref npcAnimationStateHash, ref hasNpcAnimationState);
     }
 
     private string GetEntityIdleAnimationStateName()

@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>獨立管理實體／本體血量、復活、友好狀態與 NPC 外觀；以事件通知其他元件。</summary>
@@ -40,12 +41,9 @@ public sealed class EnemyStateHealth : MonoBehaviour
     [Tooltip("以實體為中心的圓形受擊範圍半徑。")]
     [SerializeField, Min(0.01f)] private float entityHitRadius = 0.75f;
 
-    [InspectorName("NPC 型態")]
-    [Tooltip("放入友好狀態時要替換實體顯示的 NPC Sprite。")]
-    [SerializeField] private Sprite normalNpcSprite = null;
-
-    // 舊場景的 NPC 物件保留為隱藏參考，避免與新的 NPC Sprite 同時顯示。
-    [HideInInspector, SerializeField] private GameObject normalNpc = null;
+    [InspectorName("NPC 物件")]
+    [Tooltip("放入友好狀態時顯示的 NPC GameObject 或 Prefab。場景物件建議放在怪物根物件下；Prefab 會在轉為友好時建立。")]
+    [SerializeField] private GameObject normalNpc = null;
 
     [Header("怪物本體與光源")]
     [InspectorName("怪物本體")]
@@ -68,9 +66,8 @@ public sealed class EnemyStateHealth : MonoBehaviour
 
     private Vector3 revivePosition;
 
-    private SpriteRenderer entityRenderer;
-
-    private Sprite entityOriginalSprite;
+    private GameObject npcInstance;
+    private readonly Dictionary<Renderer, bool> entityRendererStates = new Dictionary<Renderer, bool>();
 
     private bool initialized;
     private Coroutine reviveRoutine;
@@ -84,6 +81,8 @@ public sealed class EnemyStateHealth : MonoBehaviour
     public bool IsEntityDefeated => entityDefeated;
     public GameObject Entity => entity;
     public GameObject Body => body;
+    /// <summary>目前實際顯示的 NPC，包含從 Prefab 建立的實例。</summary>
+    public GameObject NpcInstance => npcInstance;
     public bool BodyCanAppear => isActiveAndEnabled && !IsFriendly && !entityDefeated &&
         bodyHasBeenIlluminated && Time.time < bodyLightLostAt + BodyLightLossDelay;
     public bool BodyCanBeHit => BodyCanAppear && body != null && body.activeInHierarchy;
@@ -129,10 +128,16 @@ public sealed class EnemyStateHealth : MonoBehaviour
         initialized = true;
         entityHealth = health;
         bodyHealth = health;
+        if (normalNpc != null && normalNpc.scene.IsValid() &&
+            (normalNpc == entity || transform.IsChildOf(normalNpc.transform)))
+        {
+            Debug.LogWarning("【敵人】NPC 物件請指定獨立的外觀物件，不能使用怪物實體、控制器本身或其父物件。", this);
+            normalNpc = null;
+        }
         if (entity != null)
         {
-            entityRenderer = entity.GetComponent<SpriteRenderer>();
-            entityOriginalSprite = entityRenderer != null ? entityRenderer.sprite : null;
+            foreach (Renderer renderer in entity.GetComponentsInChildren<Renderer>(true))
+                entityRendererStates[renderer] = renderer.enabled;
         }
         ApplyStatusVisuals();
         UpdateBodyIllumination();
@@ -209,7 +214,7 @@ public sealed class EnemyStateHealth : MonoBehaviour
         ApplyStatusVisuals();
         SetActive(body, false);
         BecameFriendly?.Invoke();
-        Debug.Log("【敵人】本體血量歸零，已切換友好狀態並替換為 NPC Sprite。", this);
+        Debug.Log("【敵人】本體血量歸零，已切換友好狀態並顯示 NPC 物件。", this);
     }
 
     private static bool IsInsideHitRange(
@@ -227,13 +232,28 @@ public sealed class EnemyStateHealth : MonoBehaviour
     private void ApplyStatusVisuals()
     {
         bool isFriendly = status == EnemyStatus.友好狀態;
-        SetActive(normalNpc, false);
-        if (entityRenderer != null)
+        if (normalNpc != null && npcInstance == null)
         {
-            entityRenderer.sprite = isFriendly && normalNpcSprite != null
-                ? normalNpcSprite
-                : entityOriginalSprite;
+            if (normalNpc.scene.IsValid())
+                npcInstance = normalNpc;
+            else if (isFriendly)
+            {
+                // 只建立執行中的實例，不直接啟用或修改 Prefab 資產。
+                Transform anchor = entity != null ? entity.transform : transform;
+                Transform parent = anchor.parent != null && anchor.IsChildOf(transform) ? anchor.parent : transform;
+                npcInstance = Instantiate(normalNpc, anchor.position, anchor.rotation, parent);
+            }
         }
+
+        foreach (var entry in entityRendererStates)
+        {
+            Renderer renderer = entry.Key;
+            if (renderer == null) continue;
+            // NPC 可以位於實體階層下；只隱藏怪物外觀，保留其控制腳本與 NPC。
+            if (npcInstance != null && renderer.transform.IsChildOf(npcInstance.transform)) continue;
+            renderer.enabled = entry.Value && !(isFriendly && npcInstance != null);
+        }
+        SetActive(npcInstance, isFriendly);
 
         if (isFriendly)
         {

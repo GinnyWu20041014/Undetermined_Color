@@ -10,6 +10,7 @@ TagManager:
   - placementTarget
   - Machine
   - build
+  - floor
   layers:
   - Default
   - TransparentFX
