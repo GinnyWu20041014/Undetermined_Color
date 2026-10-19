@@ -89,6 +89,9 @@ PrefabInstance:
       addedObject: {fileID: 1143000000000000001}
     - targetCorrespondingSourceObject: {fileID: -8653719598885068355, guid: 6c9ecfaaca27e5a478f814ee1b44a4a1, type: 3}
       insertIndex: -1
+      addedObject: {fileID: 1143000000000000002}
+    - targetCorrespondingSourceObject: {fileID: -8653719598885068355, guid: 6c9ecfaaca27e5a478f814ee1b44a4a1, type: 3}
+      insertIndex: -1
       addedObject: {fileID: 5807572396076697990}
     - targetCorrespondingSourceObject: {fileID: -8653719598885068355, guid: 6c9ecfaaca27e5a478f814ee1b44a4a1, type: 3}
       insertIndex: -1
@@ -313,3 +316,22 @@ MonoBehaviour:
     m_Extent: {x: 0, y: 0, z: 0}
   m_AlwaysUpdate: 1
   m_AutoRebind: 0
+--- !u!114 &1143000000000000002
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7225866219435571836}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 21e96cf99d7f42c4b31511241e571b3f, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  thornPrefab: {fileID: 3045424863142246663, guid: cfeaefe573812964494ba9d54c4eb175, type: 3}
+  attackInterval: 5
+  spawnRadius: 2
+  contactRadius: 0.45
+  slowMultiplier: 0.5
+  warningClip: {fileID: 0}
+  growClip: {fileID: 7400000, guid: ee629e3477eae4e4e802689b529aee4d, type: 2}

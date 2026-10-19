@@ -18,6 +18,7 @@ public sealed class EnemyAreaMovement : MonoBehaviour
     private Vector3 knockbackDirection;
     private float knockbackElapsed;
     private bool isKnockedBack;
+    public bool IsKnockedBack => isKnockedBack;
 
     public void ApplyKnockback(Vector3 attackerPosition)
     {
@@ -25,6 +26,13 @@ public sealed class EnemyAreaMovement : MonoBehaviour
         if (knockbackDirection.sqrMagnitude < 0.0001f) knockbackDirection = Vector3.back;
         knockbackElapsed = 0f;
         isKnockedBack = knockbackDistance > 0f;
+        if (isKnockedBack)
+        {
+            ResetWanderTarget();
+            combat?.CancelAllAttacks();
+            // 受擊當下就停止行走動畫，不等下一次移動更新。
+            Moved?.Invoke(Vector3.zero);
+        }
     }
 
     [Header("障礙偵測")]
@@ -112,9 +120,10 @@ public sealed class EnemyAreaMovement : MonoBehaviour
                 FrameDisplacement = displacement;
                 transform.position += displacement;
             }
-            else knockbackElapsed = duration;
-            isKnockedBack = knockbackElapsed < duration;
+            // 即使撞牆無法位移，也等待擊退時間結束才恢復走動。
+            // 通知動畫時保留擊退旗標，包含最後一幀的位移。
             Moved?.Invoke(FrameDisplacement);
+            isKnockedBack = knockbackElapsed < duration;
             return;
         }
         if ((state == null || (state.isActiveAndEnabled && !state.IsEntityDefeated)) &&

@@ -152,6 +152,14 @@ public class PlayerHealth : MonoBehaviour
         return true;
     }
 
+    /// <summary>持續傷害不附帶擊退，仍使用既有死亡與重生流程。</summary>
+    public void ReceiveDamageOverTime(int damage)
+    {
+        if (damage <= 0 || isDead) return;
+        currentHealth = Mathf.Max(0, currentHealth - damage);
+        if (currentHealth == 0) StartCoroutine(DeathAndRespawn());
+    }
+
     /// <summary>提供敵人判斷是否已進入玩家受擊圓形範圍。</summary>
     public bool IsInsideEnemyAttackRange(Vector3 enemyPosition, float enemyAttackRadius)
     {

@@ -205,6 +205,11 @@ public sealed class EnemyAnimationController : MonoBehaviour
 
     private void OnMoved(Vector3 displacement)
     {
+        if (movement != null && movement.IsKnockedBack)
+        {
+            SetEntityLocomotionAnimation(false);
+            return;
+        }
         UpdateVisualFacing(displacement);
         // 使用 XZ 平面的每秒移動速度，避免高幀率時每幀位移變小而被誤判為停止。
         displacement.y = 0f;

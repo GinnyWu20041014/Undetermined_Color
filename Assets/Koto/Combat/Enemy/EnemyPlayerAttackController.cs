@@ -74,6 +74,8 @@ public sealed class EnemyPlayerAttackController : MonoBehaviour
     private Coroutine bodyAttackRoutine;
     private EnemyStateHealth state;
     private EnemyAnimationController animations;
+    private EnemyAreaMovement movement;
+    private Monster3ThornAttack thornAttack;
     private GameObject body => state != null ? state.Body : null;
     private int attackPower => state != null ? state.AttackPower : 0;
     public bool IsEntityAttacking => isEntityAttacking;
@@ -94,6 +96,8 @@ public sealed class EnemyPlayerAttackController : MonoBehaviour
         if (state != null) state.CombatInterrupted -= OnCombatInterrupted;
         state = GetComponent<EnemyStateHealth>();
         animations = GetComponent<EnemyAnimationController>();
+        movement = GetComponent<EnemyAreaMovement>();
+        thornAttack = GetComponent<Monster3ThornAttack>();
         if (state != null) state.CombatInterrupted += OnCombatInterrupted;
     }
 
@@ -119,6 +123,11 @@ public sealed class EnemyPlayerAttackController : MonoBehaviour
         ChaseTarget = null;
         ChasePosition = null;
         WantsToWander = false;
+        if (movement != null && movement.IsKnockedBack)
+        {
+            CancelAllAttacks();
+            return;
+        }
         if (state == null || !state.isActiveAndEnabled || state.IsEntityDefeated)
         {
             CancelAllAttacks();
@@ -145,6 +154,14 @@ public sealed class EnemyPlayerAttackController : MonoBehaviour
         {
             CancelAllAttacks();
             WantsToWander = true;
+            return;
+        }
+        // 荊棘為範圍施法，不必走到近戰攻擊點；同時停用這隻敵人的近戰流程。
+        if (thornAttack != null && thornAttack.isActiveAndEnabled)
+        {
+            if (state.BodyCanBeHit && thornAttack.Ready && !IsAnyAttackInProgress())
+                TryStartBodyAttack();
+            animations?.SetEntityLocomotionAnimation(false);
             return;
         }
         // 揮擊中不因玩家被擊退或短暫移動而取消整次攻擊。
@@ -296,6 +313,8 @@ public sealed class EnemyPlayerAttackController : MonoBehaviour
     {
         isBodyAttacking = true;
         bodyAttackHitApplied = false;
+        if (thornAttack != null && thornAttack.isActiveAndEnabled)
+            thornAttack.Release(GetPlayerHealth());
         yield return RunAttackHitWindow(
             animations.BodyAttackDuration,
             bodyHitWindowStart,
@@ -362,6 +381,7 @@ public sealed class EnemyPlayerAttackController : MonoBehaviour
 
     private void TryApplyBodyPointHit()
     {
+        if (thornAttack != null && thornAttack.isActiveAndEnabled) return;
         if (!isBodyAttacking || !isBodyHitWindowOpen || bodyAttackHitApplied ||
             body == null || !body.activeInHierarchy || (state == null || !state.BodyCanBeHit))
         {
