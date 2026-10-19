@@ -50,7 +50,7 @@ public sealed class EnemyAnimationController : MonoBehaviour
     [Tooltip("放入 moster2 的 call 動畫片段；未指定時會依狀態名稱自動尋找。")]
     [SerializeField] private AnimationClip bodySummonAnimationClip = null;
 
-    [Header("實體攻擊骨架")]
+    [Header("實體攻擊動畫")]
     [InspectorName("實體攻擊動畫控制器")]
     [Tooltip("放入實體實際播放攻擊動畫的 Animator。")]
     [SerializeField, FormerlySerializedAs("attackAnimator")] private Animator entityAttackAnimator = null;
@@ -68,7 +68,7 @@ public sealed class EnemyAnimationController : MonoBehaviour
     [SerializeField, FormerlySerializedAs("attackAnimationStateName")] private string entityAttackAnimationStateName = "Base Layer.attack";
 
     [InspectorName("實體攻擊動畫片段")]
-    [Tooltip("放入實體的攻擊動畫片段，用來計算攻擊與骨架命中區間。")]
+    [Tooltip("放入實體的攻擊動畫片段，用來計算攻擊與攻擊點命中區間。")]
     [SerializeField, FormerlySerializedAs("attackAnimationClip")] private AnimationClip entityAttackAnimationClip = null;
 
     [Header("實體死亡動畫")]
@@ -80,7 +80,7 @@ public sealed class EnemyAnimationController : MonoBehaviour
     [Tooltip("實體 Animator 內播放死亡動畫的 Trigger 參數。Enemy2 預設為 Die。")]
     [SerializeField] private string entityDeathTriggerParameterName = "Die";
 
-    [Header("影紋／本體攻擊骨架")]
+    [Header("影紋／本體攻擊動畫")]
     [InspectorName("影紋攻擊動畫控制器")]
     [Tooltip("放入影紋／本體實際播放攻擊動畫的 Animator。僅在影紋受光顯示時使用。")]
     [SerializeField] private Animator bodyAttackAnimator = null;
@@ -94,7 +94,7 @@ public sealed class EnemyAnimationController : MonoBehaviour
     [SerializeField] private string bodyAttackAnimationStateName = "Base Layer.attack1";
 
     [InspectorName("影紋攻擊動畫片段")]
-    [Tooltip("放入影紋／本體的攻擊動畫片段，用來計算攻擊與骨架命中區間。")]
+    [Tooltip("放入影紋／本體的攻擊動畫片段，用來計算攻擊與攻擊點命中區間。")]
     [SerializeField] private AnimationClip bodyAttackAnimationClip = null;
 
     [Header("Animator 參數")]
@@ -312,6 +312,7 @@ public sealed class EnemyAnimationController : MonoBehaviour
 
     public bool TryPlayBodyAttack()
     {
+        ResolveAttackAnimationReferences();
         if (IsSummoning)
         {
             return false;
@@ -483,6 +484,8 @@ public sealed class EnemyAnimationController : MonoBehaviour
             bodyAttackAnimator = body.GetComponent<Animator>();
         }
 
+        ResolveLegacyM3BodyStates();
+
         if (entityAttackAnimationClip == null)
         {
             entityAttackAnimationClip = FindAnimatorClip(entityAttackAnimator, entityAttackAnimationStateName);
@@ -502,6 +505,33 @@ public sealed class EnemyAnimationController : MonoBehaviour
         {
             bodySummonAnimationClip = FindAnimatorClip(bodyAttackAnimator, bodySummonAnimationStateName);
         }
+    }
+
+    // 場景可能覆寫了 Prefab 的舊名稱；僅在控制器確實包含 M3 狀態時修正。
+    private void ResolveLegacyM3BodyStates()
+    {
+        if (bodyAttackAnimator == null || bodyAttackAnimator.runtimeAnimatorController == null) return;
+        if (ResolveLegacyM3State(ref bodyAttackAnimationStateName, "attack"))
+            bodyAttackAnimationClip = FindAnimatorClip(bodyAttackAnimator, bodyAttackAnimationStateName);
+        if (ResolveLegacyM3State(ref bodySummonAnimationStateName, "call"))
+            bodySummonAnimationClip = FindAnimatorClip(bodyAttackAnimator, bodySummonAnimationStateName);
+        ResolveLegacyM3State(ref bodyIdleAnimationStateName, "stand");
+    }
+
+    private bool ResolveLegacyM3State(ref string stateName, string action)
+    {
+        string target = "Base Layer.M3 " + action;
+        if (!bodyAttackAnimator.HasState(0, Animator.StringToHash(target))) return false;
+        if (!string.IsNullOrWhiteSpace(stateName) &&
+            bodyAttackAnimator.HasState(0, Animator.StringToHash(stateName))) return false;
+
+        string oldName = string.IsNullOrWhiteSpace(stateName) ? "" : GetShortStateName(stateName).Trim();
+        if (oldName != "Monster3 " + action && oldName != "Moster3 " + action &&
+            oldName != "M3 " + action) return false;
+
+        Debug.LogWarning($"【敵人】影紋動畫舊狀態「{stateName}」不存在，已改用「{target}」。請同步更新 Inspector 的狀態名稱。", this);
+        stateName = target;
+        return true;
     }
 
     private static AnimationClip FindAnimatorClip(Animator animator, string stateName)

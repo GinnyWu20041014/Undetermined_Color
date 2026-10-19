@@ -29,53 +29,47 @@ public sealed class EnemyController : MonoBehaviour
     [Tooltip("以敵人為中心，在 X/Z 平面向外擴散的圓形偵測範圍。")]
     [SerializeField, Min(0.01f)] private float playerDetectionRange = 8f;
 
-    [HideInInspector]
-    [InspectorName("停止追擊距離")]
-    [Tooltip("只決定何時停止移動並開始揮擊；真正是否造成傷害完全由攻擊骨架接觸玩家判定。")]
-    [SerializeField, Min(0.01f), FormerlySerializedAs("attackRange")] private float stopChasingDistance = 1.5f;
 
     [HideInInspector]
-    [InspectorName("實體攻擊骨架")]
-    [Tooltip("可增加多個手部、爪子或武器末端骨架。只有這些骨架在命中區間碰到玩家才會造成傷害。")]
-    [SerializeField] private Transform[] entityAttackBones = System.Array.Empty<Transform>();
+    [InspectorName("實體攻擊點")]
+    [Tooltip("指定敵人底下的空物件，作為攻擊中心；未指定時使用敵人根物件位置。請勿綁定動畫骨架。")]
+    [SerializeField] private Transform entityAttackPoint = null;
 
     [HideInInspector]
-    [InspectorName("實體骨架命中厚度")]
-    [Tooltip("每個實體攻擊骨架周圍的 X/Z 平面命中厚度，不是敵人整體的攻擊範圍。")]
-    [SerializeField, Min(0.01f), FormerlySerializedAs("attackHitRadius")] private float entityBoneHitRadius = 0.5f;
+    [InspectorName("實體攻擊點半徑")]
+    [Tooltip("每個實體攻擊點周圍的 X/Z 平面命中厚度，不是敵人整體的攻擊範圍。")]
+    [SerializeField, Min(0.01f), FormerlySerializedAs("attackHitRadius")] [FormerlySerializedAs("entityBoneHitRadius")] private float entityAttackPointRadius = 0.5f;
 
     [HideInInspector]
     [InspectorName("實體命中開始進度")]
-    [Tooltip("實體攻擊動畫從哪個進度開始啟用骨架傷害。")]
+    [Tooltip("實體攻擊動畫從哪個進度開始啟用攻擊點傷害。")]
     [SerializeField, Range(0f, 1f)] private float entityHitWindowStart = 0.2f;
 
     [HideInInspector]
     [InspectorName("實體命中結束進度")]
-    [Tooltip("實體攻擊動畫到哪個進度關閉骨架傷害。")]
+    [Tooltip("實體攻擊動畫到哪個進度關閉攻擊點傷害。")]
     [SerializeField, Range(0f, 1f)] private float entityHitWindowEnd = 0.4f;
 
     [HideInInspector]
-    [InspectorName("影紋攻擊骨架")]
-    [Tooltip("可增加多個影紋手部、爪子或武器末端骨架。只有這些骨架在命中區間碰到玩家才會造成傷害。")]
-    [SerializeField] private Transform[] bodyAttackBones = System.Array.Empty<Transform>();
+    [InspectorName("影紋攻擊點")]
+    [Tooltip("指定敵人底下的空物件，作為攻擊中心；未指定時使用敵人根物件位置。請勿綁定動畫骨架。")]
+    [SerializeField] private Transform bodyAttackPoint = null;
 
     [HideInInspector]
-    [InspectorName("影紋骨架命中厚度")]
-    [Tooltip("每個影紋攻擊骨架周圍的 X/Z 平面命中厚度，不是影紋整體的攻擊範圍。")]
-    [SerializeField, Min(0.01f)] private float bodyBoneHitRadius = 0.5f;
+    [InspectorName("影紋攻擊點半徑")]
+    [Tooltip("每個影紋攻擊點周圍的 X/Z 平面命中厚度，不是影紋整體的攻擊範圍。")]
+    [SerializeField, Min(0.01f)] [FormerlySerializedAs("bodyBoneHitRadius")] private float bodyAttackPointRadius = 0.5f;
 
     [HideInInspector]
     [InspectorName("影紋命中開始進度")]
-    [Tooltip("影紋攻擊動畫從哪個進度開始啟用骨架傷害。")]
+    [Tooltip("影紋攻擊動畫從哪個進度開始啟用攻擊點傷害。")]
     [SerializeField, Range(0f, 1f)] private float bodyHitWindowStart = 0.2f;
 
     [HideInInspector]
     [InspectorName("影紋命中結束進度")]
-    [Tooltip("影紋攻擊動畫到哪個進度關閉骨架傷害。")]
+    [Tooltip("影紋攻擊動畫到哪個進度關閉攻擊點傷害。")]
     [SerializeField, Range(0f, 1f)] private float bodyHitWindowEnd = 0.4f;
 
-    // 保留舊版單一命中點資料，載入後自動轉成第一個實體攻擊骨架。
-    [HideInInspector, SerializeField, FormerlySerializedAs("attackHitPoint")] private Transform legacyEntityAttackBone = null;
 
     [HideInInspector]
     [Header("受光召喚動畫")]
@@ -104,7 +98,7 @@ public sealed class EnemyController : MonoBehaviour
     [SerializeField] private AnimationClip bodySummonAnimationClip = null;
 
     [HideInInspector]
-    [Header("實體攻擊骨架")]
+    [Header("實體攻擊點")]
     [InspectorName("實體攻擊動畫控制器")]
     [Tooltip("放入實體實際播放攻擊動畫的 Animator。")]
     [SerializeField, FormerlySerializedAs("attackAnimator")] private Animator entityAttackAnimator = null;
@@ -126,11 +120,11 @@ public sealed class EnemyController : MonoBehaviour
 
     [HideInInspector]
     [InspectorName("實體攻擊動畫片段")]
-    [Tooltip("放入實體的攻擊動畫片段，用來計算攻擊與骨架命中區間。")]
+    [Tooltip("放入實體的攻擊動畫片段，用來計算攻擊與攻擊點命中區間。")]
     [SerializeField, FormerlySerializedAs("attackAnimationClip")] private AnimationClip entityAttackAnimationClip = null;
 
     [HideInInspector]
-    [Header("影紋／本體攻擊骨架")]
+    [Header("影紋／本體攻擊點")]
     [InspectorName("影紋攻擊動畫控制器")]
     [Tooltip("放入影紋／本體實際播放攻擊動畫的 Animator。僅在影紋受光顯示時使用。")]
     [SerializeField] private Animator bodyAttackAnimator = null;
@@ -147,7 +141,7 @@ public sealed class EnemyController : MonoBehaviour
 
     [HideInInspector]
     [InspectorName("影紋攻擊動畫片段")]
-    [Tooltip("放入影紋／本體的攻擊動畫片段，用來計算攻擊與骨架命中區間。")]
+    [Tooltip("放入影紋／本體的攻擊動畫片段，用來計算攻擊與攻擊點命中區間。")]
     [SerializeField] private AnimationClip bodyAttackAnimationClip = null;
 
     [HideInInspector]
@@ -179,7 +173,7 @@ public sealed class EnemyController : MonoBehaviour
 
     [HideInInspector]
     [InspectorName("攻擊力")]
-    [Tooltip("實體與影紋本體的每次骨架命中傷害。")]
+    [Tooltip("實體與影紋本體的每次攻擊點命中傷害。")]
     [SerializeField, Min(0)] private int attackPower = 10;
 
     [HideInInspector]

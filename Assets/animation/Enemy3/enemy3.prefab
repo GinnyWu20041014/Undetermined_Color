@@ -86,6 +86,9 @@ PrefabInstance:
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: -8653719598885068355, guid: 6c9ecfaaca27e5a478f814ee1b44a4a1, type: 3}
       insertIndex: -1
+      addedObject: {fileID: 1143000000000000001}
+    - targetCorrespondingSourceObject: {fileID: -8653719598885068355, guid: 6c9ecfaaca27e5a478f814ee1b44a4a1, type: 3}
+      insertIndex: -1
       addedObject: {fileID: 5807572396076697990}
     - targetCorrespondingSourceObject: {fileID: -8653719598885068355, guid: 6c9ecfaaca27e5a478f814ee1b44a4a1, type: 3}
       insertIndex: -1
@@ -100,6 +103,36 @@ PrefabInstance:
       insertIndex: -1
       addedObject: {fileID: 4067730960555004478}
   m_SourcePrefab: {fileID: 4843985084834002234, guid: 6c9ecfaaca27e5a478f814ee1b44a4a1, type: 3}
+--- !u!114 &1143000000000000001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7225866219435571836}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 20a29a6bef9b4d81a1096d35f1d95b6b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  entityAttackAnimator: {fileID: 5697542340545234127}
+  entityIdleAnimationStateName: Base Layer.stand enemy3
+  entityWalkAnimationStateName: Base Layer.walk enemy3
+  entityMovingBoolParameterName: isMoving
+  entitySummonAnimationStateName: 
+  entitySummonedIdleAnimationStateName: Base Layer.stand enemy3
+  entityAttackAnimationStateName: 
+  entityDeathAnimationStateName: 
+  entityDeathTriggerParameterName: 
+  entityAttackTriggerParameterName: 
+  entitySummonTriggerParameterName: 
+  entityHasBodyBoolParameterName: 
+  bodySummonAnimationStateName: Base Layer.M3 call
+  bodySummonAnimationClip: {fileID: 7400000, guid: 3ce15792f7a38db4696f10110233cd14, type: 2}
+  bodyIdleAnimationStateName: Base Layer.M3 stand
+  bodyAttackAnimationStateName: Base Layer.M3 attack
+  bodyAttackAnimationClip: {fileID: 7400000, guid: 864cc971f0594e24bb6999c959ff037e, type: 2}
+  bodyAttackTriggerParameterName: attack
 --- !u!1 &7225866219435571836 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: -8653719598885068355, guid: 6c9ecfaaca27e5a478f814ee1b44a4a1, type: 3}

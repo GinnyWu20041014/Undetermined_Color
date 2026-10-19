@@ -25,7 +25,7 @@ public sealed class EnemyStateHealth : MonoBehaviour
     [SerializeField, Min(1)] private int health = 100;
 
     [InspectorName("攻擊力")]
-    [Tooltip("實體與影紋本體的每次骨架命中傷害。")]
+    [Tooltip("實體與影紋本體的每次攻擊點命中傷害。")]
     [SerializeField, Min(0)] private int attackPower = 10;
 
     [InspectorName("實體復活時間")]

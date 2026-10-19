@@ -357,26 +357,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   player: {fileID: 0}
   playerDetectionRange: 8
-  stopChasingDistance: 1.5
-  entityAttackBones:
-  - {fileID: 4819847144643607176}
-  - {fileID: 8381103001972020094}
-  - {fileID: 5416474918821040553}
-  - {fileID: 1168246132681943475}
-  - {fileID: 3078993102362179106}
-  entityBoneHitRadius: 0.5
+  entityAttackPoint: {fileID: 0}
+  entityAttackPointRadius: 0.5
   entityHitWindowStart: 0.2
   entityHitWindowEnd: 0.4
-  bodyAttackBones:
-  - {fileID: 4711660475517595076}
-  - {fileID: 2070259189241445675}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  bodyBoneHitRadius: 0.5
+  bodyAttackPoint: {fileID: 0}
+  bodyAttackPointRadius: 0.5
   bodyHitWindowStart: 0.2
   bodyHitWindowEnd: 0.4
-  legacyEntityAttackBone: {fileID: 0}
 --- !u!65 &9035573368360648725
 BoxCollider:
   m_ObjectHideFlags: 0
