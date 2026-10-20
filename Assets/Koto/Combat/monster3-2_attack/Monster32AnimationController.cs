@@ -1,0 +1,759 @@
+using System.Collections;
+using UnityEngine;
+using UnityEngine.Serialization;
+
+/// <summary>Monster3-2 專用顯隱、召喚與移動動畫。沒有主動攻擊入口。</summary>
+[DisallowMultipleComponent]
+[DefaultExecutionOrder(-200)]
+[AddComponentMenu("Koto/Combat/Monster3-2 動畫控制")]
+public sealed class Monster32AnimationController : MonoBehaviour
+{
+    [Header("NPC 待機與行走")]
+    [InspectorName("NPC 動畫控制器")]
+    [Tooltip("可指定場景中 NPC 的 Animator；留空時自動取得 NPC 物件或生成實例下的 Animator。")]
+    [SerializeField] private Animator npcAnimator = null;
+
+    [InspectorName("NPC 移動參數名稱")]
+    [Tooltip("NPC Animator 的 Bool 參數。存在時以此參數切換行走／待機；留空或找不到時使用下方狀態名稱。")]
+    [SerializeField] private string npcMovingBoolParameterName = "isMoving";
+
+    [InspectorName("NPC 待機動畫狀態名稱")]
+    [Tooltip("Animator 的完整狀態名稱，例如 Base Layer.stand npc2。")]
+    [SerializeField] private string npcIdleAnimationStateName = "Base Layer.stand npc2";
+
+    [InspectorName("NPC 行走動畫狀態名稱")]
+    [Tooltip("Animator 的完整狀態名稱，例如 Base Layer.walk npc2。")]
+    [SerializeField] private string npcWalkAnimationStateName = "Base Layer.walk npc2";
+
+    private Animator resolvedNpcAnimator;
+    private int npcAnimationStateHash;
+    private bool hasNpcAnimationState;
+
+    [Header("受光召喚動畫")]
+    [InspectorName("實體召喚動畫狀態名稱")]
+    [Tooltip("enemy3 受光時可選擇播放的召喚動畫。沒有配置時留空。")]
+    [SerializeField] private string entitySummonAnimationStateName = "";
+
+    [InspectorName("實體召喚動畫片段")]
+    [Tooltip("選填實體召喚片段；未指定時會依狀態名稱自動尋找。")]
+    [SerializeField] private AnimationClip entitySummonAnimationClip = null;
+
+    [InspectorName("實體召喚後待機動畫狀態名稱")]
+    [Tooltip("本體顯示期間，實體停止移動時使用的待機狀態。")]
+    [SerializeField] private string entitySummonedIdleAnimationStateName = "Base Layer.stand enemy3";
+
+    [InspectorName("影紋召喚動畫狀態名稱")]
+    [Tooltip("實體受光使本體出現時播放的狀態。")]
+    [SerializeField] private string bodySummonAnimationStateName = "Base Layer.M3 call";
+
+    [InspectorName("影紋召喚動畫片段")]
+    [Tooltip("本體召喚片段；未指定時會依狀態名稱自動尋找。")]
+    [SerializeField] private AnimationClip bodySummonAnimationClip = null;
+
+    [Header("實體待機與移動")]
+    [InspectorName("實體動畫控制器")]
+    [Tooltip("指定 enemy3 的 Animator。")]
+    [SerializeField, FormerlySerializedAs("attackAnimator")] private Animator entityAttackAnimator = null;
+
+    [InspectorName("實體待機動畫狀態名稱")]
+    [Tooltip("實體未移動、未攻擊時要播放的完整 Animator 狀態名稱。")]
+    [SerializeField] private string entityIdleAnimationStateName = "Base Layer.stand enemy3";
+
+    [InspectorName("實體移動動畫狀態名稱")]
+    [Tooltip("實體實際移動時要播放的完整 Animator 狀態名稱。")]
+    [SerializeField] private string entityWalkAnimationStateName = "Base Layer.walk enemy3";
+
+
+
+    [Header("實體死亡動畫")]
+    [InspectorName("實體死亡動畫狀態名稱")]
+    [Tooltip("實體血量歸零時播放的完整 Animator 狀態名稱。Enemy2 預設為 Base Layer.die enemy2。")]
+    [SerializeField] private string entityDeathAnimationStateName = "Base Layer.die enemy2";
+
+    [InspectorName("實體死亡參數名稱")]
+    [Tooltip("實體 Animator 內播放死亡動畫的 Trigger 參數。Enemy2 預設為 Die。")]
+    [SerializeField] private string entityDeathTriggerParameterName = "Die";
+
+    [Header("本體待機動畫")]
+    [InspectorName("本體動畫控制器")]
+    [Tooltip("指定 monster3-2 本體的 Animator。")]
+    [SerializeField] private Animator bodyAttackAnimator = null;
+
+    [InspectorName("影紋待機動畫狀態名稱")]
+    [Tooltip("影紋顯示但未攻擊時要播放的完整 Animator 狀態名稱。")]
+    [SerializeField] private string bodyIdleAnimationStateName = "Base Layer.M3 stand";
+
+
+
+    [Header("Animator 參數")]
+    [InspectorName("實體移動參數名稱")]
+    [Tooltip("Enemy2 Animator 內控制走路的 Bool 參數。目前控制器使用 isMoving。若找不到此參數才會改用上方狀態名稱。")]
+    [SerializeField] private string entityMovingBoolParameterName = "isMoving";
+
+
+    [InspectorName("實體召喚參數名稱")]
+    [Tooltip("Enemy2 Animator 內播放召喚的 Trigger 參數。目前控制器使用 call。")]
+    [SerializeField] private string entitySummonTriggerParameterName = "";
+
+    [InspectorName("實體顯示影紋參數名稱")]
+    [Tooltip("Enemy2 Animator 內切換影紋待機的 Bool 參數。目前控制器使用 hasMonster。")]
+    [SerializeField] private string entityHasBodyBoolParameterName = "hasMonster";
+
+
+    [Header("實體視覺翻轉")]
+    [InspectorName("視覺整體")]
+    [Tooltip("指定 enemy3 的視覺整體；固定本體會在初始化時脫離此階層。")]
+    [SerializeField] private Transform visualRoot = null;
+
+    [InspectorName("預設圖片朝右")]
+    [Tooltip("勾選代表視覺整體 X 縮放為正值時面向右方；若素材左右相反可取消勾選。")]
+    [SerializeField] private bool visualFacesRightWhenScaleXPositive = true;
+
+    private const float DefaultSummonAnimationDuration = 0.5833333f;
+
+    private bool isEntitySummoning;
+
+    private bool isBodySummoning;
+
+    private bool bodyWasVisible;
+
+    private bool hasEntityAnimationState;
+
+    private bool hasBodyAnimationState;
+
+    private int entityAnimationStateHash;
+
+    private int bodyAnimationStateHash;
+
+    private Vector3 visualRootOriginalScale;
+
+    private Coroutine entitySummonRoutine;
+
+    private Coroutine bodySummonRoutine;
+    private Monster32StateHealth state;
+    private GameObject entity => state != null ? state.Entity : null;
+    private GameObject body => state != null ? state.Body : null;
+
+
+    public bool IsSummoning => isActiveAndEnabled && IsAnySummonInProgress();
+    public bool IsEntitySummoning => isEntitySummoning;
+    public bool IsBodySummoning => isBodySummoning;
+
+    private void OnEnable() => Bind();
+
+    private void Start()
+    {
+        Bind();
+        if (state != null) state.Initialize();
+        ResolveAnimationReferences();
+        if (visualRoot == null) visualRoot = entity != null ? entity.transform : transform;
+        visualRootOriginalScale = visualRoot.localScale;
+        UpdateBodyVisibility();
+        SetEntityLocomotionAnimation(false);
+        SetBodyIdleAnimation();
+    }
+
+    private void Bind()
+    {
+        Unbind();
+        state = GetComponent<Monster32StateHealth>();
+        if (state != null)
+        {
+            state.CombatInterrupted += OnCombatInterrupted;
+            state.Revived += OnRevived;
+            state.BecameFriendly += OnBecameFriendly;
+        }
+        if (state != null) state.Moved += OnMoved;
+    }
+
+    private void Unbind()
+    {
+        if (state != null)
+        {
+            state.CombatInterrupted -= OnCombatInterrupted;
+            state.Revived -= OnRevived;
+            state.BecameFriendly -= OnBecameFriendly;
+        }
+        if (state != null) state.Moved -= OnMoved;
+    }
+
+    private void Update() => UpdateBodyVisibility();
+
+    private void OnMoved(Vector3 displacement)
+    {
+        if (state != null && state.IsKnockedBack)
+        {
+            SetEntityLocomotionAnimation(false);
+            return;
+        }
+        UpdateVisualFacing(displacement);
+        // 使用 XZ 平面的每秒移動速度，避免高幀率時每幀位移變小而被誤判為停止。
+        displacement.y = 0f;
+        const float minimumMovingSpeed = 0.01f;
+        float minimumFrameDistance = minimumMovingSpeed * Time.deltaTime;
+        bool isMoving = Time.deltaTime > 0f &&
+            displacement.sqrMagnitude > minimumFrameDistance * minimumFrameDistance;
+        SetEntityLocomotionAnimation(isMoving);
+    }
+
+    private void OnCombatInterrupted()
+    {
+        CancelAllSummons(false);
+        SetActive(body, false);
+        SetEntityHasBodyParameter(false);
+        bodyWasVisible = false;
+        hasBodyAnimationState = false;
+
+        if (state != null && state.IsEntityDefeated)
+        {
+            PlayEntityDeathAnimation();
+        }
+    }
+
+    private void OnRevived()
+    {
+        UpdateBodyVisibility();
+        SetEntityLocomotionAnimation(false);
+    }
+
+    private void OnBecameFriendly()
+    {
+        hasNpcAnimationState = false;
+        SetNpcLocomotionAnimation(false);
+    }
+
+    private void OnDisable()
+    {
+        Unbind();
+        CancelAllSummons(false);
+
+        SetActive(body, false);
+        hasEntityAnimationState = false;
+        hasBodyAnimationState = false;
+        bodyWasVisible = false;
+        if (resolvedNpcAnimator != null && resolvedNpcAnimator.isActiveAndEnabled)
+            TrySetBoolParameter(resolvedNpcAnimator, npcMovingBoolParameterName, false);
+        hasNpcAnimationState = false;
+    }
+
+
+
+    /// <summary>實體血量歸零時播放死亡動畫，直到狀態血量元件完成復活。</summary>
+    public bool PlayEntityDeathAnimation()
+    {
+        if (entityAttackAnimator == null || !entityAttackAnimator.isActiveAndEnabled)
+        {
+            Debug.LogWarning("【敵人】無法播放實體死亡動畫：尚未指定或啟用實體動畫控制器。", this);
+            return false;
+        }
+
+        TrySetBoolParameter(entityAttackAnimator, entityMovingBoolParameterName, false);
+
+        // 優先直接播放指定狀態，避免死亡動畫受到其他轉場條件或 Exit Time 延遲。
+        if (PlayEntityAnimatorState(entityDeathAnimationStateName, "實體死亡", true, false))
+        {
+            Debug.Log("【敵人】實體血量歸零，已播放實體死亡動畫。", this);
+            return true;
+        }
+
+        if (TrySetTriggerParameter(entityAttackAnimator, entityDeathTriggerParameterName))
+        {
+            hasEntityAnimationState = false;
+            Debug.Log("【敵人】實體血量歸零，已觸發實體死亡動畫。", this);
+            return true;
+        }
+
+        Debug.LogWarning(
+            $"【敵人】無法播放實體死亡動畫，請確認狀態「{entityDeathAnimationStateName}」或 Trigger「{entityDeathTriggerParameterName}」。",
+            this);
+        return false;
+    }
+
+
+
+    private void UpdateVisualFacing(Vector3 actualDelta)
+    {
+        if (state != null && state.isActiveAndEnabled && state.FacingTarget != null)
+        {
+            FaceTarget(state.FacingTarget);
+            return;
+        }
+        // 只依實際 X 軸位移翻轉；停止或僅 Z 軸移動時保留既有面向，避免左右搖擺。
+        if (visualRoot == null || Mathf.Abs(actualDelta.x) < 0.0001f)
+        {
+            return;
+        }
+
+        SetFacingRight(actualDelta.x > 0f);
+    }
+
+    public void FaceTarget(Transform target)
+    {
+        if (target == null || visualRoot == null || (state != null && state.IsKnockedBack)) return;
+        // 使用敵人根物件到玩家的方向，不以攻擊點站位或避障位移決定面向。
+        // 玩家接近左右分界時保持原方向，避免小幅位移造成反覆翻轉。
+        float horizontalOffset = target.position.x - transform.position.x;
+        if (Mathf.Abs(horizontalOffset) <= 0.15f) return;
+        SetFacingRight(horizontalOffset > 0f);
+    }
+
+    private void SetFacingRight(bool movingRight)
+    {
+        bool usePositiveScaleX = movingRight == visualFacesRightWhenScaleXPositive;
+        float scaleMagnitude = Mathf.Abs(visualRootOriginalScale.x);
+        visualRoot.localScale = new Vector3(
+            usePositiveScaleX ? scaleMagnitude : -scaleMagnitude,
+            visualRootOriginalScale.y,
+            visualRootOriginalScale.z);
+    }
+
+    private bool IsAnySummonInProgress()
+    {
+        return isEntitySummoning || isBodySummoning;
+    }
+
+    private void StartSummonAnimations()
+    {
+        // 光線剛照到時，中斷既有揮擊，讓兩個 call 動畫能從第 0 秒完整播放。
+
+        SetEntityHasBodyParameter(true);
+
+        // 召喚屬於一次性動畫，直接從第 0 秒播放；名稱找不到時才退回 Trigger。
+        bool entitySummonStarted = PlayEntityAnimatorState(
+            entitySummonAnimationStateName,
+            "實體召喚",
+            true,
+            false);
+        if (!entitySummonStarted)
+        {
+            entitySummonStarted = TrySetTriggerParameter(
+                entityAttackAnimator,
+                entitySummonTriggerParameterName);
+        }
+        if (!entitySummonStarted)
+        {
+            entitySummonStarted = PlayEntityAnimatorState(entitySummonAnimationStateName, "實體召喚", true, true);
+        }
+        if (entitySummonStarted)
+        {
+            isEntitySummoning = true;
+            entitySummonRoutine = StartCoroutine(EntitySummonRoutine());
+        }
+
+        bool bodySummonStarted = PlayBodyAnimatorState(
+            bodySummonAnimationStateName,
+            "影紋召喚",
+            true,
+            true);
+        if (bodySummonStarted)
+        {
+            isBodySummoning = true;
+            bodySummonRoutine = StartCoroutine(BodySummonRoutine());
+        }
+
+        if (entitySummonStarted || bodySummonStarted)
+        {
+            Debug.Log("【敵人】受到光線照射，已播放實體與影紋的召喚動畫。", this);
+            return;
+        }
+
+        // 未配置 Animator 時仍保留原本的受光顯示行為。
+        SetEntityLocomotionAnimation(false);
+        SetBodyIdleAnimation();
+    }
+
+    private IEnumerator EntitySummonRoutine()
+    {
+        yield return new WaitForSeconds(GetAnimationDuration(entitySummonAnimationClip));
+
+        isEntitySummoning = false;
+        entitySummonRoutine = null;
+        if (body != null && body.activeInHierarchy && state != null && !state.IsFriendly &&
+            state.BodyCanAppear)
+        {
+            SetEntityLocomotionAnimation(false);
+        }
+    }
+
+    private IEnumerator BodySummonRoutine()
+    {
+        yield return new WaitForSeconds(GetAnimationDuration(bodySummonAnimationClip));
+
+        isBodySummoning = false;
+        bodySummonRoutine = null;
+        if (body != null && body.activeInHierarchy && state != null && !state.IsFriendly &&
+            state.BodyCanAppear)
+        {
+            SetBodyIdleAnimation();
+        }
+    }
+
+    private void CancelAllSummons(bool restoreAnimations = true)
+    {
+        CancelEntitySummon(restoreAnimations);
+        CancelBodySummon(restoreAnimations);
+    }
+
+    private void CancelEntitySummon(bool restoreAnimation)
+    {
+        bool wasSummoning = isEntitySummoning || entitySummonRoutine != null;
+        if (entitySummonRoutine != null)
+        {
+            StopCoroutine(entitySummonRoutine);
+            entitySummonRoutine = null;
+        }
+
+        isEntitySummoning = false;
+        if (restoreAnimation && wasSummoning)
+        {
+            SetEntityLocomotionAnimation(false);
+        }
+    }
+
+    private void CancelBodySummon(bool restoreAnimation)
+    {
+        bool wasSummoning = isBodySummoning || bodySummonRoutine != null;
+        if (bodySummonRoutine != null)
+        {
+            StopCoroutine(bodySummonRoutine);
+            bodySummonRoutine = null;
+        }
+
+        isBodySummoning = false;
+        if (restoreAnimation && wasSummoning)
+        {
+            SetBodyIdleAnimation();
+        }
+    }
+
+    private void ResolveAnimationReferences()
+    {
+        if (entityAttackAnimator == null && entity != null)
+        {
+            // 只嘗試實體物件本身，避免誤抓到身後影紋的 Animator。
+            entityAttackAnimator = entity.GetComponent<Animator>();
+        }
+
+        if (bodyAttackAnimator == null && body != null)
+        {
+            bodyAttackAnimator = body.GetComponent<Animator>();
+        }
+
+        ResolveLegacyM3BodyStates();
+
+
+        if (entitySummonAnimationClip == null)
+        {
+            entitySummonAnimationClip = FindAnimatorClip(entityAttackAnimator, entitySummonAnimationStateName);
+        }
+
+
+        if (bodySummonAnimationClip == null)
+        {
+            bodySummonAnimationClip = FindAnimatorClip(bodyAttackAnimator, bodySummonAnimationStateName);
+        }
+    }
+
+    // 場景可能覆寫了 Prefab 的舊名稱；僅在控制器確實包含 M3 狀態時修正。
+    private void ResolveLegacyM3BodyStates()
+    {
+        if (bodyAttackAnimator == null || bodyAttackAnimator.runtimeAnimatorController == null) return;
+        if (ResolveLegacyM3State(ref bodySummonAnimationStateName, "call"))
+            bodySummonAnimationClip = FindAnimatorClip(bodyAttackAnimator, bodySummonAnimationStateName);
+        ResolveLegacyM3State(ref bodyIdleAnimationStateName, "stand");
+    }
+
+    private bool ResolveLegacyM3State(ref string stateName, string action)
+    {
+        string target = "Base Layer.M3 " + action;
+        if (!bodyAttackAnimator.HasState(0, Animator.StringToHash(target))) return false;
+        if (!string.IsNullOrWhiteSpace(stateName) &&
+            bodyAttackAnimator.HasState(0, Animator.StringToHash(stateName))) return false;
+
+        string oldName = string.IsNullOrWhiteSpace(stateName) ? "" : GetShortStateName(stateName).Trim();
+        if (oldName != "Monster3 " + action && oldName != "Moster3 " + action &&
+            oldName != "M3 " + action) return false;
+
+        Debug.LogWarning($"【敵人】影紋動畫舊狀態「{stateName}」不存在，已改用「{target}」。請同步更新 Inspector 的狀態名稱。", this);
+        stateName = target;
+        return true;
+    }
+
+    private static AnimationClip FindAnimatorClip(Animator animator, string stateName)
+    {
+        if (animator == null || animator.runtimeAnimatorController == null || string.IsNullOrWhiteSpace(stateName))
+        {
+            return null;
+        }
+
+        int separatorIndex = stateName.LastIndexOf('.');
+        string clipName = separatorIndex >= 0 ? stateName[(separatorIndex + 1)..] : stateName;
+        foreach (AnimationClip clip in animator.runtimeAnimatorController.animationClips)
+        {
+            if (clip != null && clip.name == clipName)
+            {
+                return clip;
+            }
+        }
+
+        return null;
+    }
+
+    private static float GetAnimationDuration(AnimationClip attackAnimationClip)
+    {
+        return attackAnimationClip != null
+            ? Mathf.Max(0.01f, attackAnimationClip.length)
+            : DefaultSummonAnimationDuration;
+    }
+
+    private bool PlayEntityAnimatorState(
+        string stateName,
+        string animationLabel,
+        bool restart,
+        bool warnWhenMissing)
+    {
+        return PlayAnimatorState(
+            entityAttackAnimator,
+            stateName,
+            animationLabel,
+            restart,
+            warnWhenMissing,
+            ref entityAnimationStateHash,
+            ref hasEntityAnimationState);
+    }
+
+    private bool PlayBodyAnimatorState(
+        string stateName,
+        string animationLabel,
+        bool restart,
+        bool warnWhenMissing)
+    {
+        return PlayAnimatorState(
+            bodyAttackAnimator,
+            stateName,
+            animationLabel,
+            restart,
+            warnWhenMissing,
+            ref bodyAnimationStateHash,
+            ref hasBodyAnimationState);
+    }
+
+    private bool PlayAnimatorState(
+        Animator animator,
+        string stateName,
+        string animationLabel,
+        bool restart,
+        bool warnWhenMissing,
+        ref int lastStateHash,
+        ref bool hasLastState)
+    {
+        if (!isActiveAndEnabled || animator == null || !animator.isActiveAndEnabled || string.IsNullOrWhiteSpace(stateName))
+        {
+            return false;
+        }
+
+        int stateHash = Animator.StringToHash(stateName);
+        if (!animator.HasState(0, stateHash))
+        {
+            if (warnWhenMissing)
+            {
+                Debug.LogWarning($"【敵人】找不到{animationLabel}狀態「{stateName}」，請確認對應 Animator 的狀態名稱。", this);
+            }
+
+            return false;
+        }
+
+        // 只在目標狀態改變時切換；不再因 Animator 正在轉場而每幀從 0 秒重播 walk。
+        if (!restart && hasLastState && lastStateHash == stateHash)
+        {
+            return true;
+        }
+
+        // 短暫混合可避免姿勢瞬間跳動，同時保證一次性動畫從頭開始。
+        animator.CrossFadeInFixedTime(stateHash, 0.05f, 0, 0f);
+        lastStateHash = stateHash;
+        hasLastState = true;
+        return true;
+    }
+
+    public void SetEntityLocomotionAnimation(bool isMoving)
+    {
+        if (state != null && state.IsFriendly)
+        {
+            SetNpcLocomotionAnimation(isMoving);
+            return;
+        }
+        if (isEntitySummoning ||
+            (state != null && state.IsEntityDefeated) || entityAttackAnimator == null)
+        {
+            return;
+        }
+
+        SetEntityHasBodyParameter(body != null && body.activeInHierarchy);
+        bool usesMovingParameter = TrySetBoolParameter(entityAttackAnimator, entityMovingBoolParameterName, isMoving);
+        if (usesMovingParameter && isMoving)
+        {
+            // 移動時交由 Animator 參數決定 walk。
+            hasEntityAnimationState = false;
+            return;
+        }
+
+        string targetStateName = isMoving
+            ? entityWalkAnimationStateName
+            : GetEntityIdleAnimationStateName();
+        // 停止移動或一次性動畫結束時直接回到正確待機，避免 attack 固定回到錯誤的待機狀態。
+        PlayEntityAnimatorState(targetStateName, "實體待機／移動", false, false);
+    }
+
+    private void SetNpcLocomotionAnimation(bool isMoving)
+    {
+        if (!isActiveAndEnabled || state == null || !state.IsFriendly) return;
+        Animator target = npcAnimator;
+        if (target == null && state.NpcInstance != null)
+            target = state.NpcInstance.GetComponentInChildren<Animator>(true);
+        if (resolvedNpcAnimator != target)
+        {
+            resolvedNpcAnimator = target;
+            hasNpcAnimationState = false;
+        }
+        if (target == null || !target.isActiveAndEnabled || target.runtimeAnimatorController == null) return;
+
+        if (TrySetBoolParameter(target, npcMovingBoolParameterName, isMoving))
+        {
+            hasNpcAnimationState = false;
+            return;
+        }
+        PlayAnimatorState(target, isMoving ? npcWalkAnimationStateName : npcIdleAnimationStateName,
+            "NPC 待機／移動", false, false, ref npcAnimationStateHash, ref hasNpcAnimationState);
+    }
+
+    private string GetEntityIdleAnimationStateName()
+    {
+        if (body != null && body.activeInHierarchy &&
+            !string.IsNullOrWhiteSpace(entitySummonedIdleAnimationStateName))
+        {
+            return entitySummonedIdleAnimationStateName;
+        }
+
+        return entityIdleAnimationStateName;
+    }
+
+    public void SetBodyIdleAnimation()
+    {
+        if (isBodySummoning || body == null || !body.activeInHierarchy || bodyAttackAnimator == null)
+        {
+            return;
+        }
+
+        PlayBodyAnimatorState(bodyIdleAnimationStateName, "影紋待機", false, false);
+    }
+
+    private void UpdateBodyVisibility()
+    {
+        if (body == null)
+        {
+            return;
+        }
+
+        bool shouldBeVisible = state != null && !state.IsFriendly && state.BodyCanAppear;
+        if (!shouldBeVisible)
+        {
+            bool wasVisible = bodyWasVisible || body.activeSelf;
+
+            CancelAllSummons(false);
+            SetActive(body, false);
+            SetEntityHasBodyParameter(false);
+            bodyWasVisible = false;
+            hasBodyAnimationState = false;
+
+            if (wasVisible)
+            {
+                Debug.Log("【敵人】本體顯示條件已結束，影紋本體已隱藏。", this);
+            }
+
+            return;
+        }
+
+        // 僅在本體由隱藏轉為顯示時召喚；失光倒數期間重新受光不重播。
+        if (!bodyWasVisible || !body.activeSelf)
+        {
+            SetActive(body, true);
+            SetEntityHasBodyParameter(true);
+            bodyWasVisible = true;
+            hasBodyAnimationState = false;
+            StartSummonAnimations();
+            return;
+        }
+
+        SetBodyIdleAnimation();
+    }
+
+    private void SetEntityHasBodyParameter(bool hasBody)
+    {
+        TrySetBoolParameter(entityAttackAnimator, entityHasBodyBoolParameterName, hasBody);
+    }
+
+    private static bool TrySetBoolParameter(Animator animator, string parameterName, bool value)
+    {
+        if (!HasAnimatorParameter(animator, parameterName, AnimatorControllerParameterType.Bool))
+        {
+            return false;
+        }
+
+        animator.SetBool(parameterName, value);
+        return true;
+    }
+
+    private static bool TrySetTriggerParameter(Animator animator, string parameterName)
+    {
+        if (!HasAnimatorParameter(animator, parameterName, AnimatorControllerParameterType.Trigger))
+        {
+            return false;
+        }
+
+        animator.ResetTrigger(parameterName);
+        animator.SetTrigger(parameterName);
+        return true;
+    }
+
+    private static bool HasAnimatorParameter(
+        Animator animator,
+        string parameterName,
+        AnimatorControllerParameterType parameterType)
+    {
+        if (animator == null || !animator.isActiveAndEnabled ||
+            animator.runtimeAnimatorController == null || string.IsNullOrWhiteSpace(parameterName))
+        {
+            return false;
+        }
+
+        foreach (AnimatorControllerParameter parameter in animator.parameters)
+        {
+            if (parameter.type == parameterType && parameter.name == parameterName)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static string GetShortStateName(string stateName)
+    {
+        if (string.IsNullOrWhiteSpace(stateName))
+        {
+            return string.Empty;
+        }
+
+        int separatorIndex = stateName.LastIndexOf('.');
+        return separatorIndex >= 0 ? stateName[(separatorIndex + 1)..] : stateName;
+    }
+
+    private static void SetActive(GameObject targetObject, bool active)
+    {
+        if (targetObject != null && targetObject.activeSelf != active)
+        {
+            targetObject.SetActive(active);
+        }
+    }
+}

@@ -81,6 +81,7 @@ public sealed class EnemyPlayerAttackController : MonoBehaviour
     public bool IsEntityAttacking => isEntityAttacking;
     public bool IsBodyAttacking => isBodyAttacking;
     public Transform ChaseTarget { get; private set; }
+    public Transform FacingTarget { get; private set; }
     public Vector3? ChasePosition { get; private set; }
     public bool WantsToWander { get; private set; }
 
@@ -120,6 +121,7 @@ public sealed class EnemyPlayerAttackController : MonoBehaviour
 
     private void Update()
     {
+        FacingTarget = null;
         ChaseTarget = null;
         ChasePosition = null;
         WantsToWander = false;
@@ -156,12 +158,27 @@ public sealed class EnemyPlayerAttackController : MonoBehaviour
             WantsToWander = true;
             return;
         }
-        // 荊棘為範圍施法，不必走到近戰攻擊點；同時停用這隻敵人的近戰流程。
+        FacingTarget = player;
+        // 先確定面向，再計算會隨視覺翻轉的攻擊點位置。
+        animations?.FaceTarget(player);
+        // 荊棘可在偵測範圍內施放；只有施放期間停步，冷卻期間繼續追蹤。
         if (thornAttack != null && thornAttack.isActiveAndEnabled)
         {
             if (state.BodyCanBeHit && thornAttack.Ready && !IsAnyAttackInProgress())
                 TryStartBodyAttack();
-            animations?.SetEntityLocomotionAnimation(false);
+            if (IsAnyAttackInProgress())
+            {
+                animations?.SetEntityLocomotionAnimation(false);
+                return;
+            }
+            Transform point = state.BodyCanBeHit ? BodyAttackPoint : EntityAttackPoint;
+            float radius = state.BodyCanBeHit ? bodyAttackPointRadius : entityAttackPointRadius;
+            if (TryGetAttackApproach(playerHealth, point, radius, out Vector3 thornApproach) &&
+                thornApproach.sqrMagnitude > 0.0001f)
+            {
+                ChaseTarget = player;
+                ChasePosition = transform.position + thornApproach;
+            }
             return;
         }
         // 揮擊中不因玩家被擊退或短暫移動而取消整次攻擊。

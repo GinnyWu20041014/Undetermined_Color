@@ -137,4 +137,15 @@ public class AutoDepthSortManager : MonoBehaviour
         float cameraDepth = targetCamera.transform.InverseTransformPoint(worldPosition).z;
         return Mathf.Clamp(Mathf.RoundToInt(-cameraDepth * sortingScale), -32768, 32767);
     }
+
+    public bool ApplyDepthSorting(SortingGroup targetGroup, Vector3 worldPosition, int orderOffset)
+    {
+        if (targetGroup == null || !isActiveAndEnabled) return false;
+        if (targetCamera == null) targetCamera = Camera.main;
+        if (targetCamera == null) return false;
+        targetGroup.sortingLayerName = sortingLayerName;
+        targetGroup.sortingOrder = Mathf.Clamp(GetSortingOrder(worldPosition) +
+            Mathf.Clamp(orderOffset, -32768, 32767), -32768, 32767);
+        return true;
+    }
 }

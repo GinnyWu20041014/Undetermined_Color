@@ -86,6 +86,12 @@ public class PlayerAttack : MonoBehaviour
             enemy.TryReceivePlayerAttack(attackDamage, origin, attackRange, transform.position);
         }
 
+        foreach (Monster32StateHealth enemy in FindObjectsByType<Monster32StateHealth>(FindObjectsSortMode.None))
+        {
+            if (enemy == null || enemy.transform.root == transform.root) continue;
+            enemy.TryReceivePlayerAttack(attackDamage, origin, attackRange, transform.position);
+        }
+
         Debug.Log("【攻擊系統】已使用圓形範圍發動攻擊。", this);
     }
 

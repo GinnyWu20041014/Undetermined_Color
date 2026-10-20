@@ -342,13 +342,32 @@ public sealed class EnemyAnimationController : MonoBehaviour
 
     private void UpdateVisualFacing(Vector3 actualDelta)
     {
+        if (combat != null && combat.isActiveAndEnabled && combat.FacingTarget != null)
+        {
+            FaceTarget(combat.FacingTarget);
+            return;
+        }
         // 只依實際 X 軸位移翻轉；停止或僅 Z 軸移動時保留既有面向，避免左右搖擺。
         if (visualRoot == null || Mathf.Abs(actualDelta.x) < 0.0001f)
         {
             return;
         }
 
-        bool movingRight = actualDelta.x > 0f;
+        SetFacingRight(actualDelta.x > 0f);
+    }
+
+    public void FaceTarget(Transform target)
+    {
+        if (target == null || visualRoot == null || (movement != null && movement.IsKnockedBack)) return;
+        // 使用敵人根物件到玩家的方向，不以攻擊點站位或避障位移決定面向。
+        // 玩家接近左右分界時保持原方向，避免小幅位移造成反覆翻轉。
+        float horizontalOffset = target.position.x - transform.position.x;
+        if (Mathf.Abs(horizontalOffset) <= 0.15f) return;
+        SetFacingRight(horizontalOffset > 0f);
+    }
+
+    private void SetFacingRight(bool movingRight)
+    {
         bool usePositiveScaleX = movingRight == visualFacesRightWhenScaleXPositive;
         float scaleMagnitude = Mathf.Abs(visualRootOriginalScale.x);
         visualRoot.localScale = new Vector3(
