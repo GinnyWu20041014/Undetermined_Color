@@ -163,6 +163,7 @@ public sealed class EnemyStateHealth : MonoBehaviour
         if (!isActiveAndEnabled || damage <= 0 || IsFriendly || entityDefeated) return false;
         if (BodyCanBeHit && IsInsideHitRange(body.transform.position, bodyHitRadius, attackPosition, playerAttackRadius))
         {
+            AttackFeedbackController.NotifyPlayerHit(body, gameObject);
             TakeBodyDamage(damage);
             GetComponent<EnemyAreaMovement>()?.ApplyKnockback(attackerPosition ?? attackPosition);
             return true;
@@ -170,6 +171,7 @@ public sealed class EnemyStateHealth : MonoBehaviour
         if (entity != null && entity.activeInHierarchy &&
             IsInsideHitRange(entity.transform.position, entityHitRadius, attackPosition, playerAttackRadius))
         {
+            AttackFeedbackController.NotifyPlayerHit(entity, gameObject);
             TakeDamage(damage);
             if (!entityDefeated)
                 GetComponent<EnemyAreaMovement>()?.ApplyKnockback(attackerPosition ?? attackPosition);
