@@ -154,6 +154,15 @@ MonoBehaviour:
   shakeDuration: 0.15
   shakeStrength: 0.08
   shakeFrequency: 35
+  showDamageNumbers: 1
+  damageFont: {fileID: 0}
+  damageFontSize: 24
+  numberDuration: 0.7
+  numberWorldOffset: {x: 0, y: 1, z: 0}
+  numberBounceHeight: 45
+  enemyDamageColor: {r: 1, g: 1, b: 1, a: 1}
+  playerDamageColor: {r: 1, g: 0, b: 0, a: 1}
+  maxDamageNumbers: 64
 --- !u!4 &17770102
 Transform:
   m_ObjectHideFlags: 0
@@ -1904,6 +1913,11 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 793324278}
   m_CullTransparentMesh: 1
+--- !u!4 &803554662 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 5100735997285962035, guid: 96fead3931faff141a88d169353730b0, type: 3}
+  m_PrefabInstance: {fileID: 3304012067029783720}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &807705562 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: f639e57d2a06f194fbf481ef36b5a1a6, type: 3}
@@ -3182,6 +3196,10 @@ PrefabInstance:
       propertyPath: m_IsActive
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 794216104239945331, guid: 6e3b7c8ef674ce84381b3d64fbe20874, type: 3}
+      propertyPath: visualRoot
+      value: 
+      objectReference: {fileID: 877605035}
     - target: {fileID: 1270142193612848373, guid: 6e3b7c8ef674ce84381b3d64fbe20874, type: 3}
       propertyPath: m_LocalPosition.x
       value: 9.88
@@ -3719,6 +3737,14 @@ PrefabInstance:
       propertyPath: player
       value: 
       objectReference: {fileID: 402957188}
+    - target: {fileID: 4439074731365921581, guid: 96fead3931faff141a88d169353730b0, type: 3}
+      propertyPath: visualRoot
+      value: 
+      objectReference: {fileID: 803554662}
+    - target: {fileID: 4439074731365921581, guid: 96fead3931faff141a88d169353730b0, type: 3}
+      propertyPath: visualFacesRightWhenScaleXPositive
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 5100735997285962035, guid: 96fead3931faff141a88d169353730b0, type: 3}
       propertyPath: m_LocalPosition.x
       value: 3.81
