@@ -325,14 +325,14 @@ public sealed class Monster32StateHealth : MonoBehaviour
         if (!isActiveAndEnabled || damage <= 0 || IsFriendly || entityDefeated) return false;
         if (BodyCanBeHit && IsInsideHitRange(body.transform.position, bodyHitRadius, attackPosition, playerAttackRadius))
         {
-            AttackFeedbackController.NotifyPlayerHit(body, gameObject);
+            AttackFeedbackController.NotifyPlayerHit(body, gameObject, Mathf.Min(damage, bodyHealth));
             TakeBodyDamage(damage);
             return true;
         }
         if (entity != null && entity.activeInHierarchy &&
             IsInsideHitRange(entity.transform.position, entityHitRadius, attackPosition, playerAttackRadius))
         {
-            AttackFeedbackController.NotifyPlayerHit(entity, gameObject);
+            AttackFeedbackController.NotifyPlayerHit(entity, gameObject, Mathf.Min(damage, entityHealth));
             TakeDamage(damage);
             if (!entityDefeated)
                 ApplyKnockback(attackerPosition ?? attackPosition);

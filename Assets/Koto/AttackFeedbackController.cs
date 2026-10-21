@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.UI;
+using TMPro;
 
 /// <summary>掛在場景空物件上；玩家確實命中 Enemy 時閃白命中部位並震動相機。</summary>
 [DisallowMultipleComponent]
@@ -18,6 +20,34 @@ public sealed class AttackFeedbackController : MonoBehaviour
     [SerializeField, Min(0f)] private float shakeStrength = 0.08f;
     [SerializeField, Min(1f)] private float shakeFrequency = 35f;
 
+    [Header("彈跳傷害數字")]
+    [SerializeField] private bool showDamageNumbers = true;
+    [Tooltip("留空使用專案預設 TMP 字型。")]
+    [SerializeField] private TMP_FontAsset damageFont;
+    [SerializeField, Min(1f)] private float damageFontSize = 24f;
+    [SerializeField, Min(0.1f)] private float numberDuration = 0.7f;
+    [Tooltip("數字出現位置相對受傷物件的世界座標偏移。")]
+    [SerializeField] private Vector3 numberWorldOffset = new Vector3(0f, 1f, 0f);
+    [SerializeField, Min(0f)] private float numberBounceHeight = 45f;
+    [SerializeField] private Color enemyDamageColor = Color.white;
+    [SerializeField] private Color playerDamageColor = Color.red;
+    [SerializeField, Min(1)] private int maxDamageNumbers = 64;
+
+    private sealed class DamageNumber
+    {
+        public TextMeshProUGUI Label;
+        public Vector3 Position;
+        public Color Color;
+        public float Started;
+        public float Duration;
+        public float Drift;
+    }
+
+    private readonly List<DamageNumber> numbers = new List<DamageNumber>();
+    private readonly Stack<TextMeshProUGUI> numberPool = new Stack<TextMeshProUGUI>();
+    private Canvas numberCanvas;
+    private RectTransform numberCanvasRect;
+
     private sealed class Flash
     {
         public Material Original;
@@ -33,10 +63,17 @@ public sealed class AttackFeedbackController : MonoBehaviour
     private Vector3 cameraPositionBeforeRender;
 
     /// <summary>其他玩家武器也可在確認命中後呼叫。owner 用於本體脫離敵人階層時辨識 Enemy Tag。</summary>
-    public static void NotifyPlayerHit(GameObject hitObject, GameObject owner = null)
+    public static void NotifyPlayerHit(GameObject hitObject, GameObject owner = null, int damage = 0)
     {
         if (instance != null && instance.isActiveAndEnabled)
-            instance.PlayFeedback(hitObject, owner);
+            instance.PlayFeedback(hitObject, owner, damage);
+    }
+
+    /// <summary>玩家實際扣血後呼叫；包含荊棘每次持續傷害，不附加閃白與震動。</summary>
+    public static void NotifyPlayerDamaged(GameObject player, int damage)
+    {
+        if (instance != null && instance.isActiveAndEnabled && player != null)
+            instance.SpawnNumber(player.transform.position, damage, instance.playerDamageColor);
     }
 
     private void OnEnable()
@@ -65,9 +102,10 @@ public sealed class AttackFeedbackController : MonoBehaviour
         return false;
     }
 
-    private void PlayFeedback(GameObject hitObject, GameObject owner)
+    private void PlayFeedback(GameObject hitObject, GameObject owner, int damage)
     {
         if (hitObject == null || (!HasEnemyTag(hitObject) && !HasEnemyTag(owner))) return;
+        SpawnNumber(hitObject.transform.position, damage, enemyDamageColor);
         float now = Time.unscaledTime;
         if (whiteMaterial != null && flashDuration > 0f)
         {
@@ -97,6 +135,88 @@ public sealed class AttackFeedbackController : MonoBehaviour
             expired.Add(entry.Key);
         }
         foreach (SpriteRenderer sprite in expired) flashes.Remove(sprite);
+        UpdateNumbers();
+    }
+
+    private void SpawnNumber(Vector3 position, int damage, Color color)
+    {
+        if (!showDamageNumbers || damage <= 0) return;
+        if (numberCanvas == null)
+        {
+            if (damageFont == null) damageFont = TMP_Settings.defaultFontAsset;
+            if (damageFont == null) damageFont = Resources.Load<TMP_FontAsset>("Fonts & Materials/LiberationSans SDF");
+            if (damageFont == null) return;
+            var root = new GameObject("Damage Numbers", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler));
+            root.transform.SetParent(transform, false);
+            numberCanvas = root.GetComponent<Canvas>();
+            numberCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            numberCanvas.sortingOrder = 200;
+            numberCanvasRect = root.GetComponent<RectTransform>();
+            var scaler = root.GetComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1920f, 1080f);
+            scaler.matchWidthOrHeight = 0.5f;
+        }
+        if (numbers.Count >= Mathf.Max(1, maxDamageNumbers)) RecycleNumber(0);
+        TextMeshProUGUI label;
+        if (numberPool.Count > 0) label = numberPool.Pop();
+        else
+        {
+            var root = new GameObject("Damage", typeof(RectTransform), typeof(TextMeshProUGUI));
+            root.transform.SetParent(numberCanvas.transform, false);
+            label = root.GetComponent<TextMeshProUGUI>();
+            label.raycastTarget = false;
+            label.alignment = TextAlignmentOptions.Center;
+            label.fontStyle = FontStyles.Bold;
+            label.rectTransform.sizeDelta = new Vector2(200f, 80f);
+        }
+        label.gameObject.SetActive(true);
+        label.enabled = false;
+        label.font = damageFont;
+        label.fontSize = damageFontSize;
+        label.text = damage.ToString();
+        label.color = color;
+        numbers.Add(new DamageNumber
+        {
+            Label = label, Position = position + numberWorldOffset, Color = color,
+            Started = Time.unscaledTime, Duration = Mathf.Max(0.1f, numberDuration),
+            Drift = Random.Range(-24f, 24f)
+        });
+    }
+
+    private void UpdateNumbers()
+    {
+        if (targetCamera == null) targetCamera = Camera.main;
+        for (int i = numbers.Count - 1; i >= 0; i--)
+        {
+            DamageNumber number = numbers[i];
+            float progress = (Time.unscaledTime - number.Started) / number.Duration;
+            if (progress >= 1f || !showDamageNumbers)
+            {
+                RecycleNumber(i);
+                continue;
+            }
+            if (targetCamera == null) { number.Label.enabled = false; continue; }
+            Vector3 screen = targetCamera.WorldToScreenPoint(number.Position);
+            number.Label.enabled = screen.z > 0f;
+            if (screen.z <= 0f) continue;
+            RectTransformUtility.ScreenPointToLocalPointInRectangle(numberCanvasRect, screen, null, out Vector2 point);
+            // 拋物線上彈後略微落下；每次扣血都有獨立數字，連續命中不互相覆蓋。
+            point += new Vector2(number.Drift * progress, numberBounceHeight * (4f * progress - 3f * progress * progress));
+            number.Label.rectTransform.anchoredPosition = point;
+            number.Label.rectTransform.localScale = Vector3.one * (1f + 0.25f * Mathf.Sin(Mathf.PI * Mathf.Clamp01(progress * 3f)));
+            Color color = number.Color;
+            color.a *= 1f - Mathf.InverseLerp(0.55f, 1f, progress);
+            number.Label.color = color;
+        }
+    }
+
+    private void RecycleNumber(int index)
+    {
+        TextMeshProUGUI label = numbers[index].Label;
+        label.gameObject.SetActive(false);
+        numberPool.Push(label);
+        numbers.RemoveAt(index);
     }
 
     private void RestoreSprite(SpriteRenderer sprite, Flash flash)
@@ -140,6 +260,11 @@ public sealed class AttackFeedbackController : MonoBehaviour
         EndCamera(shakenCamera);
         foreach (var entry in flashes) RestoreSprite(entry.Key, entry.Value);
         flashes.Clear();
+        numbers.Clear();
+        numberPool.Clear();
+        if (numberCanvas != null) Destroy(numberCanvas.gameObject);
+        numberCanvas = null;
+        numberCanvasRect = null;
         shakeUntil = 0f;
         if (whiteMaterial != null) Destroy(whiteMaterial);
         whiteMaterial = null;

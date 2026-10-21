@@ -140,7 +140,9 @@ public class PlayerHealth : MonoBehaviour
             return false;
         }
 
+        int actualDamage = Mathf.Min(currentHealth, damage);
         currentHealth = Mathf.Max(0, currentHealth - damage);
+        AttackFeedbackController.NotifyPlayerDamaged(gameObject, actualDamage);
         if (currentHealth > 0 && playerMovement != null)
             playerMovement.ApplyKnockback(attackerPosition ?? enemyPosition);
         Debug.Log($"【玩家】受到 {damage} 點傷害，目前血量：{currentHealth}。", this);
@@ -156,7 +158,9 @@ public class PlayerHealth : MonoBehaviour
     public void ReceiveDamageOverTime(int damage)
     {
         if (damage <= 0 || isDead) return;
+        int actualDamage = Mathf.Min(currentHealth, damage);
         currentHealth = Mathf.Max(0, currentHealth - damage);
+        AttackFeedbackController.NotifyPlayerDamaged(gameObject, actualDamage);
         if (currentHealth == 0) StartCoroutine(DeathAndRespawn());
     }
 
