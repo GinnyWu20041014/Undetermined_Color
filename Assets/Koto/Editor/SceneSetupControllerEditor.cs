@@ -12,7 +12,7 @@ public sealed class SceneSetupControllerEditor : Editor
 {
     public override void OnInspectorGUI()
     {
-        EditorGUILayout.HelpBox("將玩家設為 Player、敵人設為 Enemy、鏡頭設為 MainCamera。拖入控制器後會補齊腳本並綁定引用。數值保存在下方各個 Prefab，已設定的物件不會在每次開場被還原。", MessageType.Info);
+        EditorGUILayout.HelpBox("僅保存與配置玩家、敵人、鏡頭及攻擊回饋。玩家設為 Player、敵人設為 Enemy、鏡頭設為 MainCamera；拖入後補齊腳本並綁定引用。", MessageType.Info);
         DrawDefaultInspector();
         var controller = (SceneSetupController)target;
         using (new EditorGUI.DisabledScope(EditorApplication.isPlayingOrWillChangePlaymode ||
@@ -20,13 +20,18 @@ public sealed class SceneSetupControllerEditor : Editor
         {
             if (GUILayout.Button("搜尋 Tag 並補齊／綁定")) SceneSetupEditor.Configure(controller);
             if (GUILayout.Button("將已保存設定重新套用到場景")) SceneSetupEditor.Configure(controller, true);
+            if (GUILayout.Button("新增選取敵人的設定"))
+            {
+                try { SceneSetupCapture.RegisterSelectedEnemy(controller); }
+                catch (Exception error) { Debug.LogError("【場景設定】" + error.Message, controller); }
+            }
             if (GUILayout.Button("保存目前場景設定到預置體"))
             {
                 try { SceneSetupCapture.SaveCurrentScene(controller); }
                 catch (Exception error) { Debug.LogError("【場景設定】" + error.Message, controller); }
             }
         }
-        EditorGUILayout.HelpBox("保存請在停止播放時操作。同類敵人有多隻時，先選擇要作為範本的敵人，再鎖定此 Inspector 後保存；或直接在 Prefab Mode 修改該敵人預置體。", MessageType.None);
+        EditorGUILayout.HelpBox("停止播放後，先鎖定控制器的 Inspector，再選擇場景中的 Enemy。新種類按「新增選取敵人的設定」；已登記種類按保存，或直接在 Prefab Mode 修改。", MessageType.None);
     }
 }
 
@@ -79,6 +84,22 @@ public static class SceneSetupEditor
         Undo.SetCurrentGroupName("設定玩家、怪物與鏡頭");
         try
         {
+            // 只刪除舊版本由控制器收納的額外物件；原場景物件只移除本工具的連結標記。
+            foreach (SceneSetupActor legacy in SceneSetupController.ComponentsInScene<SceneSetupActor>(scene).ToArray())
+            {
+                if (legacy.presetId != "ui" && legacy.presetId != "volume" && legacy.presetId != "event-system") continue;
+                if (legacy.transform.IsChildOf(controller.transform) &&
+                    legacy.GetComponentInParent<SceneSetupController>(true) == controller)
+                    Undo.DestroyObjectImmediate(legacy.gameObject);
+                else
+                    Undo.DestroyObjectImmediate(legacy);
+            }
+            if (controller.presets.Any(p => p == null || !p.IsSupported))
+            {
+                Undo.RecordObject(controller, "移除保存範圍外的設定");
+                controller.presets.RemoveAll(p => p == null || !p.IsSupported);
+                Record(controller);
+            }
             if (controller.presets.Count == 0)
             {
                 GameObject defaultAsset = AssetDatabase.LoadAssetAtPath<GameObject>(SceneSetupCapture.ControllerPath);
@@ -93,18 +114,18 @@ public static class SceneSetupEditor
                 controller.cameraOffset = defaults.cameraOffset;
                 Record(controller);
             }
-            // 玩家先配置，支援物件與鏡頭配置完成後才統一處理跨物件連結。
+            // 玩家先配置，回饋與鏡頭配置完成後才統一處理跨物件連結。
             foreach (SceneSetupController.Preset preset in controller.presets)
             {
-                if (preset.prefab == null) continue;
+                if (preset.prefab == null || !preset.IsSupported) continue;
                 List<GameObject> matches = FindMatches(controller, preset);
-                if ((preset.role == SceneSetupController.PresetRole.Camera || preset.role == SceneSetupController.PresetRole.Support) && matches.Count == 0)
+                if ((preset.role == SceneSetupController.PresetRole.Camera || preset.role == SceneSetupController.PresetRole.Feedback) && matches.Count == 0)
                 {
                     var created = (GameObject)PrefabUtility.InstantiatePrefab(preset.prefab, scene);
-                    Undo.RegisterCreatedObjectUndo(created, "建立場景支援物件");
+                    Undo.RegisterCreatedObjectUndo(created, "建立鏡頭或攻擊回饋");
                     created.name = preset.sceneObjectName;
-                    if (preset.role == SceneSetupController.PresetRole.Support)
-                        Undo.SetTransformParent(created.transform, controller.transform, "組織場景支援物件");
+                    if (preset.role == SceneSetupController.PresetRole.Feedback)
+                        Undo.SetTransformParent(created.transform, controller.transform, "組織攻擊回饋物件");
                     matches.Add(created);
                 }
                 if ((preset.role == SceneSetupController.PresetRole.Player || preset.role == SceneSetupController.PresetRole.Camera) && matches.Count > 1)
@@ -203,21 +224,11 @@ public static class SceneSetupEditor
     {
         SceneSetupActor actor = target.GetComponent<SceneSetupActor>();
         bool firstSetup = actor == null;
-        bool copyValues = overwrite || (firstSetup && preset.role != SceneSetupController.PresetRole.Support);
+        bool copyValues = overwrite || (firstSetup && preset.role != SceneSetupController.PresetRole.Feedback);
         var mapping = new Dictionary<Object, Object>();
         var changed = new List<Component>();
         var existingReferences = new Dictionary<Component, Dictionary<string, Object>>();
         Transform sourceRoot = preset.prefab.transform;
-
-        // 舊 Canvas Prefab 可能沒有在 fight test map 後來加上的 Slider／物品格。
-        // 支援物件先補齊缺少的子階層，讓角色的跨物件連結也有可用的目標。
-        if (preset.role == SceneSetupController.PresetRole.Support)
-        {
-            MapHierarchy(sourceRoot, target.transform, mapping);
-            foreach (Transform node in sourceRoot.GetComponentsInChildren<Transform>(true))
-                if (SceneSetupActor.FindPath(target.transform, SceneSetupActor.GetPath(sourceRoot, node)) == null)
-                    MapOrCreate(node, sourceRoot, target.transform, mapping);
-        }
 
         foreach (Transform sourceNode in preset.prefab.GetComponentsInChildren<Transform>(true))
         {

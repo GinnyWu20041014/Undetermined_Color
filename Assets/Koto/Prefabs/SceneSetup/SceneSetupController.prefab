@@ -69,28 +69,10 @@ MonoBehaviour:
     sourcePrefab: {fileID: 0}
     prefab: {fileID: 2508136827919673113, guid: e993f0b04d298de428866df003a80a1d, type: 3}
     sceneObjectName: Main Camera
-  - id: ui
-    role: 3
-    tag: 
-    sourcePrefab: {fileID: 2368365389038169704, guid: c5e6a4adb9dbe3e4f88b8d3245446336, type: 3}
-    prefab: {fileID: 4222532394975665579, guid: 3ef0e686e9f303648a4cb2236c2f7b2f, type: 3}
-    sceneObjectName: Canvas
-  - id: volume
-    role: 3
-    tag: 
-    sourcePrefab: {fileID: 3878776206036363412, guid: dcbb363e9c95fcc43975ac2307147b11, type: 3}
-    prefab: {fileID: 7378547853872896124, guid: 20080b451d553c24eb9d1f0dfccbdfdd, type: 3}
-    sceneObjectName: Global Volume_Night
   - id: feedback
     role: 3
     tag: 
     sourcePrefab: {fileID: 0}
     prefab: {fileID: 8135914781967060336, guid: b767950b129554e4aaf61d177893ad27, type: 3}
     sceneObjectName: AttackFeedbackController
-  - id: event-system
-    role: 3
-    tag: 
-    sourcePrefab: {fileID: 0}
-    prefab: {fileID: 3464966862352977960, guid: 859e2a2795638ab4cb6529dede5f1b58, type: 3}
-    sceneObjectName: EventSystem
   cameraOffset: {x: 4.91, y: 8.370001, z: -6.909999}

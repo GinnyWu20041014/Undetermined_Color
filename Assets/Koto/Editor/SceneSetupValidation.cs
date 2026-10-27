@@ -31,7 +31,7 @@ public static class SceneSetupValidation
             var asset = AssetDatabase.LoadAssetAtPath<GameObject>(SceneSetupCapture.ControllerPath);
             Require(asset != null, "控制器預置體存在");
             var controller = ((GameObject)PrefabUtility.InstantiatePrefab(asset, test)).GetComponent<SceneSetupController>();
-            Require(controller.presets.Count == 8, "玩家、兩種敵人、鏡頭與四組支援設定已保存");
+            Require(controller.presets.Count == 5 && controller.presets.All(p => p.IsSupported), "只保存玩家、兩種敵人、鏡頭與攻擊回饋");
             int scalarCount = 0;
             foreach (var preset in controller.presets)
             {
@@ -56,6 +56,10 @@ public static class SceneSetupValidation
             GameObject otherPlayer = Instantiate(playerPreset.prefab, other);
             Configure(controller);
             ValidateBindings(controller);
+            Require(!SceneSetupController.ComponentsInScene<Canvas>(test).Any() &&
+                !SceneSetupController.ComponentsInScene<UnityEngine.Rendering.Volume>(test).Any() &&
+                !SceneSetupController.ComponentsInScene<UnityEngine.EventSystems.EventSystem>(test).Any(),
+                "配置不會建立 UI、後處理或 EventSystem");
             Require(camera.GetComponent<Camera>().orthographic && camera.GetComponent<Camera>().orthographicSize == 5f,
                 "新場景預設鏡頭已取得基準投影、角度與跟隨設定");
             Require(camera.GetComponent<CameraFollow>().player == player.transform, "鏡頭只綁定同場景玩家");
@@ -66,7 +70,19 @@ public static class SceneSetupValidation
             Require(flower.GetComponent<Monster32StateHealth>().Body.transform.IsChildOf(flower.transform), "外部花怪本體已收進預置體");
             int count = SceneSetupController.ComponentsInScene<Transform>(test).Count();
             Configure(controller);
-            Require(SceneSetupController.ComponentsInScene<Transform>(test).Count() == count, "重複配置不增加物件／UI／鏡頭");
+            Require(SceneSetupController.ComponentsInScene<Transform>(test).Count() == count, "重複配置不增加鏡頭或回饋物件");
+
+            var generatedUi = new GameObject("Legacy Generated UI", typeof(RectTransform), typeof(Canvas), typeof(SceneSetupActor));
+            SceneManager.MoveGameObjectToScene(generatedUi, test);
+            generatedUi.transform.SetParent(controller.transform);
+            generatedUi.GetComponent<SceneSetupActor>().presetId = "ui";
+            var existingUi = new GameObject("Existing Scene UI", typeof(RectTransform), typeof(Canvas), typeof(SceneSetupActor));
+            SceneManager.MoveGameObjectToScene(existingUi, test);
+            existingUi.GetComponent<SceneSetupActor>().presetId = "ui";
+            Configure(controller);
+            Require(generatedUi == null && existingUi != null && existingUi.GetComponent<SceneSetupActor>() == null,
+                "舊版自動建立的額外物件已清理，場景原有物件保留");
+            Object.DestroyImmediate(existingUi);
 
             player.GetComponent<PlayerMovement>().moveSpeed = 6.25f;
             Object.DestroyImmediate(sheep.GetComponent<EnemyPlayerAttackController>());
@@ -87,6 +103,17 @@ public static class SceneSetupValidation
 
             // 使用副本測試保存按鈕，絕不覆寫交付給使用者的基準檔案。
             AssetDatabase.CreateFolder("Assets", Path.GetFileName(temporaryFolder));
+            var baselineSources = controller.presets.ToDictionary(p => p.id,
+                p => baseline.GetRootGameObjects().Single(go => go.name == p.sceneObjectName));
+            var capturedPlayer = SceneSetupCapture.Capture(baselineSources["player"], "player",
+                temporaryFolder + "/CapturedPlayer.prefab", baselineSources);
+            Require(capturedPlayer.GetComponent<SceneSetupActor>().references.Count == 1 &&
+                GetReference(capturedPlayer.GetComponent<PlayerHealth>(), "deathImage") == null &&
+                GetReference(capturedPlayer.GetComponent<PlayerHealth>(), "postProcessVolume") == null &&
+                GetReference(capturedPlayer.GetComponent<playerlight>(), "energySlider") == null,
+                "從基準保存玩家時排除 UI 與後處理引用");
+            Require(GetReference(baselineSources["player"].GetComponent<PlayerHealth>(), "deathImage") != null,
+                "排除保存不會清除原場景的 UI 引用");
             foreach (var preset in controller.presets)
             {
                 string copyPath = temporaryFolder + "/" + preset.id + ".prefab";
@@ -103,13 +130,13 @@ public static class SceneSetupValidation
             Object.DestroyImmediate(settingsRoot);
             Object.DestroyImmediate(controller.gameObject);
             controller = Instantiate(AssetDatabase.LoadAssetAtPath<GameObject>(controllerCopy), test).GetComponent<SceneSetupController>();
-            // 被前一個控制器收納的支援物件已隨它移除，重新建立後再保存。
+            // 被前一個控制器收納的回饋物件已隨它移除，重新建立後再保存。
             Configure(controller);
             Selection.activeGameObject = flower;
             SceneSetupCapture.SaveCurrentScene(controller);
             GameObject savedPlayer = Instantiate(controller.presets.Single(p => p.id == "player").prefab, other);
             Require(savedPlayer.GetComponent<PlayerMovement>().moveSpeed == 6.25f, "保存後重新拖入，玩家速度仍為修改後的 6.25");
-            Require(savedPlayer.GetComponent<SceneSetupActor>().references.Count == 7, "再次保存仍保留七個玩家跨場景引用規則");
+            Require(savedPlayer.GetComponent<SceneSetupActor>().references.Count == 1, "再次保存只保留玩家的鏡頭引用規則");
 
             // 原始來源 Prefab 也能由 Tag＋來源種類加入設定，而非僅新生成的範本可用。
             GameObject originalSheep = Instantiate(sheepPreset.sourcePrefab, other);
@@ -121,7 +148,7 @@ public static class SceneSetupValidation
             SceneManager.MoveGameObjectToScene(emptyController, latePlayerScene);
             var lateController = emptyController.AddComponent<SceneSetupController>();
             Configure(lateController);
-            Require(lateController.presets.Count == 8, "只掛控制器腳本也會自動載入基準設定");
+            Require(lateController.presets.Count == 5, "只掛控制器腳本也只載入限定的五組基準設定");
             GameObject latePlayer = Instantiate(playerPreset.prefab, latePlayerScene);
             latePlayer.transform.position = new Vector3(40f, 0.15f, -25f);
             Configure(lateController);
@@ -135,12 +162,6 @@ public static class SceneSetupValidation
             Require(originalFlower.GetComponent<Monster32StateHealth>().Body != null &&
                 originalFlower.GetComponent<Monster32StateHealth>().Body.transform.IsChildOf(originalFlower.transform),
                 "原始花怪預置體可補齊缺少的本體與本地引用");
-            var uiPreset = controller.presets.Single(p => p.id == "ui");
-            GameObject originalUi = Instantiate(uiPreset.sourcePrefab, other);
-            SceneSetupEditor.ApplyPreset(originalUi, uiPreset, false);
-            var uiTargets = new Dictionary<string, GameObject> { ["ui"] = originalUi };
-            Require(playerPreset.prefab.GetComponent<SceneSetupActor>().references.Where(r => r.targetId == "ui")
-                .All(r => r.Resolve(uiTargets) != null), "沿用原始 Canvas 時也能補齊能源條、死亡畫面與物品格");
             checks.Add("PASS：所有驗證完成。");
         }
         catch (Exception error)

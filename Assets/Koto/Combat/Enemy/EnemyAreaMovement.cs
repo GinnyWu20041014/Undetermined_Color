@@ -68,6 +68,7 @@ public sealed class EnemyAreaMovement : MonoBehaviour
     private EnemyStateHealth state;
     private EnemyAnimationController animations;
     private EnemyPlayerAttackController combat;
+    private SmallMonsterCombat smallMonster;
     public Vector3 FrameDisplacement { get; private set; }
     public event Action<Vector3> Moved;
 
@@ -84,6 +85,7 @@ public sealed class EnemyAreaMovement : MonoBehaviour
         state = GetComponent<EnemyStateHealth>();
         animations = GetComponent<EnemyAnimationController>();
         combat = GetComponent<EnemyPlayerAttackController>();
+        smallMonster = GetComponent<SmallMonsterCombat>();
         if (state != null) state.BecameFriendly += ResetWanderTarget;
     }
 
@@ -106,6 +108,12 @@ public sealed class EnemyAreaMovement : MonoBehaviour
     {
         RefreshFloors();
         FrameDisplacement = Vector3.zero;
+        if (smallMonster != null && !smallMonster.CanMove)
+        {
+            isKnockedBack = false;
+            Moved?.Invoke(FrameDisplacement);
+            return;
+        }
         if (state != null && state.IsEntityDefeated) isKnockedBack = false;
         if (isKnockedBack)
         {
@@ -129,7 +137,16 @@ public sealed class EnemyAreaMovement : MonoBehaviour
         if ((state == null || (state.isActiveAndEnabled && !state.IsEntityDefeated)) &&
             (animations == null || !animations.IsSummoning))
         {
-            if (state != null && state.IsFriendly)
+            if (smallMonster != null)
+            {
+                if (smallMonster.WantsToWander) WanderInsideAreas();
+                else
+                {
+                    ResetWanderTarget();
+                    if (smallMonster.ChasePosition.HasValue) MoveOnXZ(smallMonster.ChasePosition.Value);
+                }
+            }
+            else if (state != null && state.IsFriendly)
                 WanderInsideAreas();
             else if (combat == null || !combat.isActiveAndEnabled || combat.WantsToWander)
                 WanderInsideAreas();

@@ -1337,60 +1337,12 @@ MonoBehaviour:
   presetId: player
   cameraPositionInitialized: 0
   references:
-  - owner: {fileID: 713573105449182486}
-    field: deathImage
-    arrayIndex: -1
-    targetId: ui
-    targetPath: blake:0
-    componentType: UnityEngine.UI.Image, UnityEngine.UI, Version=1.0.0.0, Culture=neutral,
-      PublicKeyToken=null
-    componentIndex: 0
-  - owner: {fileID: 713573105449182486}
-    field: postProcessVolume
-    arrayIndex: -1
-    targetId: volume
-    targetPath: 
-    componentType: UnityEngine.Rendering.Volume, Unity.RenderPipelines.Core.Runtime,
-      Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
-    componentIndex: 0
   - owner: {fileID: 1913882880359840297}
     field: movementCamera
     arrayIndex: -1
     targetId: camera
     targetPath: 
     componentType: UnityEngine.Camera, UnityEngine.CoreModule, Version=0.0.0.0, Culture=neutral,
-      PublicKeyToken=null
-    componentIndex: 0
-  - owner: {fileID: 5140197671205867965}
-    field: firstSlotImage
-    arrayIndex: -1
-    targetId: ui
-    targetPath: Image:0
-    componentType: UnityEngine.UI.Image, UnityEngine.UI, Version=1.0.0.0, Culture=neutral,
-      PublicKeyToken=null
-    componentIndex: 0
-  - owner: {fileID: 5140197671205867965}
-    field: secondSlotImage
-    arrayIndex: -1
-    targetId: ui
-    targetPath: Image%20%281%29:0
-    componentType: UnityEngine.UI.Image, UnityEngine.UI, Version=1.0.0.0, Culture=neutral,
-      PublicKeyToken=null
-    componentIndex: 0
-  - owner: {fileID: 5140197671205867965}
-    field: thirdSlotImage
-    arrayIndex: -1
-    targetId: ui
-    targetPath: Image%20%282%29:0
-    componentType: UnityEngine.UI.Image, UnityEngine.UI, Version=1.0.0.0, Culture=neutral,
-      PublicKeyToken=null
-    componentIndex: 0
-  - owner: {fileID: 8904714117705327405}
-    field: energySlider
-    arrayIndex: -1
-    targetId: ui
-    targetPath: Slider:0
-    componentType: UnityEngine.UI.Slider, UnityEngine.UI, Version=1.0.0.0, Culture=neutral,
       PublicKeyToken=null
     componentIndex: 0
 --- !u!1 &2280122467676810593

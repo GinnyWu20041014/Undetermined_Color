@@ -96,6 +96,13 @@ public class PlayerAttack : MonoBehaviour
                 energy?.RestoreEnergyFromAttack(enemy.IsEntityDefeated || enemy.IsFriendly);
         }
 
+        // 分裂小球只有命中回能，即使致命一擊也不領取擊敗獎勵。
+        foreach (SmallMonsterCombat enemy in FindObjectsByType<SmallMonsterCombat>(FindObjectsSortMode.None))
+        {
+            if (enemy.TryReceivePlayerAttack(attackDamage, origin, attackRange, transform.position))
+                energy?.RestoreEnergyFromAttack(false);
+        }
+
         Debug.Log("【攻擊系統】已使用圓形範圍發動攻擊。", this);
     }
 

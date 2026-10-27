@@ -13,7 +13,7 @@ public sealed class SceneSetupController : MonoBehaviour
         [InspectorName("玩家")] Player,
         [InspectorName("敵人")] Enemy,
         [InspectorName("鏡頭")] Camera,
-        [InspectorName("UI／場景支援")] Support
+        [InspectorName("攻擊回饋")] Feedback
     }
 
     [Serializable]
@@ -27,10 +27,13 @@ public sealed class SceneSetupController : MonoBehaviour
         [Tooltip("完整保存腳本、數值、動畫、碰撞與子物件的預置體。")]
         [InspectorName("已保存設定預置體")] public GameObject prefab;
         [InspectorName("原始場景物件名稱")] public string sceneObjectName;
+
+        public bool IsSupported => role == PresetRole.Player || role == PresetRole.Enemy || role == PresetRole.Camera ||
+            (role == PresetRole.Feedback && prefab != null && prefab.GetComponent<AttackFeedbackController>() != null);
     }
 
     [Tooltip("基準來自 fight test map；不同敵人各自保存，使用 Enemy Tag 並依來源 Prefab 辨識。")]
-    [InspectorName("玩家／敵人／鏡頭預置體設定")]
+    [InspectorName("玩家／敵人／鏡頭／回饋預置體設定")]
     public List<Preset> presets = new List<Preset>();
     [HideInInspector] public Vector3 cameraOffset;
 
@@ -73,7 +76,7 @@ public sealed class SceneSetupController : MonoBehaviour
         Scene scene = gameObject.scene;
         foreach (Preset preset in presets)
         {
-            if (preset.role == PresetRole.Enemy) continue;
+            if (preset == null || !preset.IsSupported || preset.role == PresetRole.Enemy) continue;
             var matches = new List<GameObject>();
             if (preset.role == PresetRole.Player || preset.role == PresetRole.Camera)
                 matches = FindTaggedRoots(scene, preset.tag);

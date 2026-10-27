@@ -6,8 +6,6 @@ using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
-using UnityEngine.EventSystems;
-using UnityEngine.Rendering;
 using UnityEngine.SceneManagement;
 using Object = UnityEngine.Object;
 
@@ -43,14 +41,8 @@ public static class SceneSetupCapture
                     Add(controller, sources, "enemy-flower", SceneSetupController.PresetRole.Enemy, "Enemy", enemy);
             }
             Add(controller, sources, "camera", SceneSetupController.PresetRole.Camera, "MainCamera", camera);
-            Add(controller, sources, "ui", SceneSetupController.PresetRole.Support, "", SceneSetupController.ComponentsInScene<Canvas>(scene).First(c => c.isRootCanvas).gameObject);
-            var health = new SerializedObject(player.GetComponent<PlayerHealth>());
-            var volume = health.FindProperty("postProcessVolume").objectReferenceValue as Volume;
-            if (volume != null) Add(controller, sources, "volume", SceneSetupController.PresetRole.Support, "", volume.gameObject);
             var feedback = SceneSetupController.ComponentsInScene<AttackFeedbackController>(scene).FirstOrDefault();
-            if (feedback != null) Add(controller, sources, "feedback", SceneSetupController.PresetRole.Support, "", feedback.gameObject);
-            var eventSystem = SceneSetupController.ComponentsInScene<EventSystem>(scene).FirstOrDefault();
-            if (eventSystem != null) Add(controller, sources, "event-system", SceneSetupController.PresetRole.Support, "", eventSystem.gameObject);
+            if (feedback != null) Add(controller, sources, "feedback", SceneSetupController.PresetRole.Feedback, "", feedback.gameObject);
             controller.cameraOffset = camera.transform.position - player.transform.position;
 
             foreach (SceneSetupController.Preset preset in controller.presets)
@@ -79,12 +71,78 @@ public static class SceneSetupCapture
         sources.Add(id, source);
     }
 
+    public static void RegisterSelectedEnemy(SceneSetupController controller)
+    {
+        if (EditorApplication.isPlayingOrWillChangePlaymode)
+            throw new InvalidOperationException("請先停止播放再新增敵人設定。");
+        GameObject selected = Selection.activeGameObject;
+        GameObject enemy = SceneSetupController.FindTaggedRoots(controller.gameObject.scene, "Enemy")
+            .FirstOrDefault(go => selected != null && (selected == go || selected.transform.IsChildOf(go.transform)));
+        if (enemy == null)
+            throw new InvalidOperationException("請鎖定控制器的 Inspector，再選擇同一場景中根物件 Tag 為 Enemy 的敵人。");
+        if (controller.presets.Any(p => p != null && p.role == SceneSetupController.PresetRole.Enemy &&
+            SceneSetupEditor.MatchesPreset(enemy, p)))
+            throw new InvalidOperationException("此敵人已有設定，請使用「保存目前場景設定到預置體」更新。");
+
+        // 其他角色只提供跨物件引用規則；登記新敵人不改寫其他範本。
+        var sources = new Dictionary<string, GameObject>();
+        foreach (var preset in controller.presets)
+        {
+            if (preset == null || !preset.IsSupported) continue;
+            var matches = SceneSetupEditor.FindMatches(controller, preset);
+            if (matches.Count == 1) sources[preset.id] = matches[0];
+        }
+        string name = Regex.Replace(enemy.name, @"\s*\((Clone|\d+)\)$", string.Empty).Trim();
+        string stem = "enemy-" + Regex.Replace(name, @"[^\p{L}\p{Nd}_-]+", "-").Trim('-');
+        EnsureFolder(Folder);
+        string path = AssetDatabase.GenerateUniqueAssetPath(Folder + "/" + stem + ".prefab");
+        string id = Path.GetFileNameWithoutExtension(path);
+        for (int suffix = 2; controller.presets.Any(p => p != null && p.id == id); suffix++)
+        {
+            path = AssetDatabase.GenerateUniqueAssetPath(Folder + "/" + stem + "-" + suffix + ".prefab");
+            id = Path.GetFileNameWithoutExtension(path);
+        }
+        bool wasBusy = SceneSetupEditor.Busy;
+        SceneSetupEditor.Busy = true;
+        try
+        {
+            sources.Add(id, enemy);
+            GameObject saved = Capture(enemy, id, path, sources);
+            Undo.RecordObject(controller, "新增敵人設定");
+            Add(controller, new Dictionary<string, GameObject>(), id, SceneSetupController.PresetRole.Enemy, "Enemy", enemy);
+            controller.presets.Last().prefab = saved;
+            SaveController(controller);
+            SceneSetupEditor.Record(controller);
+            AssetDatabase.SaveAssets();
+            Debug.Log($"【場景設定】已新增敵人設定：{path}", controller);
+        }
+        finally { SceneSetupEditor.Busy = wasBusy; }
+        SceneSetupEditor.Configure(controller);
+    }
+
+    private static void SaveController(SceneSetupController controller)
+    {
+        string controllerPath = PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(controller.gameObject);
+        if (string.IsNullOrEmpty(controllerPath)) controllerPath = ControllerPath;
+        GameObject contents = PrefabUtility.LoadPrefabContents(controllerPath);
+        try
+        {
+            SceneSetupController saved = contents.GetComponent<SceneSetupController>();
+            if (saved == null) throw new InvalidOperationException("請將控制器本身建立為獨立 Prefab，再保存設定。");
+            saved.presets = controller.presets.Where(p => p != null && p.IsSupported).ToList();
+            saved.cameraOffset = controller.cameraOffset;
+            PrefabUtility.SaveAsPrefabAsset(contents, controllerPath);
+        }
+        finally { PrefabUtility.UnloadPrefabContents(contents); }
+    }
+
     public static void SaveCurrentScene(SceneSetupController controller)
     {
         if (Application.isPlaying) throw new InvalidOperationException("請先停止播放，避免保存執行中的血量或動畫狀態。");
         var sources = new Dictionary<string, GameObject>();
         foreach (SceneSetupController.Preset preset in controller.presets)
         {
+            if (preset == null || !preset.IsSupported) continue;
             List<GameObject> matches = SceneSetupEditor.FindMatches(controller, preset);
             if (matches.Count == 0) continue;
             if (matches.Count > 1)
@@ -113,18 +171,7 @@ public static class SceneSetupCapture
                 sources.TryGetValue(cameraPreset.id, out GameObject camera))
                 controller.cameraOffset = camera.transform.position - player.transform.position;
 
-            string controllerPath = PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(controller.gameObject);
-            if (string.IsNullOrEmpty(controllerPath)) controllerPath = ControllerPath;
-            GameObject contents = PrefabUtility.LoadPrefabContents(controllerPath);
-            try
-            {
-                SceneSetupController saved = contents.GetComponent<SceneSetupController>();
-                if (saved == null) throw new InvalidOperationException("請將控制器本身建立為獨立 Prefab，再保存設定。");
-                saved.presets = controller.presets;
-                saved.cameraOffset = controller.cameraOffset;
-                PrefabUtility.SaveAsPrefabAsset(contents, controllerPath);
-            }
-            finally { PrefabUtility.UnloadPrefabContents(contents); }
+            SaveController(controller);
             SceneSetupEditor.Record(controller);
             AssetDatabase.SaveAssets();
             Debug.Log($"【場景設定】已將 {sources.Count} 組場景設定保存回預置體。新拖入的實例將使用這些設定。", controller);
@@ -163,7 +210,8 @@ public static class SceneSetupCapture
             actor.presetId = id;
             actor.cameraPositionInitialized = false;
             // 尚未綁定時欄位是 null，保留上次記錄的規則；有實際引用時會以此次設定取代。
-            actor.references = actor.references.Where(r => r.owner != null && r.Read() == null).ToList();
+            actor.references = actor.references.Where(r => r.owner != null && r.Read() == null &&
+                r.targetId != "ui" && r.targetId != "volume" && r.targetId != "event-system").ToList();
 
             foreach (Component component in clone.GetComponentsInChildren<Component>(true))
             {
@@ -177,7 +225,11 @@ public static class SceneSetupCapture
                     if (value == null || EditorUtility.IsPersistent(value) || SceneSetupEditor.IsInside(value, clone.transform)) continue;
                     var target = sources.FirstOrDefault(pair => SceneSetupEditor.IsInside(value, pair.Value.transform));
                     if (target.Value == null)
-                        throw new InvalidOperationException($"{source.name}/{component.GetType().Name}.{property.propertyPath} 引用了未保存的場景物件 {value.name}；請將它納入控制器設定或收進角色子物件。");
+                    {
+                        // UI、後處理等不在此次保存範圍；只清除副本的外部引用，不改動場景原物件。
+                        property.objectReferenceValue = null;
+                        continue;
+                    }
                     if (!(component is MonoBehaviour owner))
                         throw new InvalidOperationException($"{component.GetType().Name}.{property.propertyPath} 需要外部物件；請先把此引用改成 Prefab 內部連結。");
                     Match match = Regex.Match(property.propertyPath, @"^(\w+)(?:\.Array\.data\[(\d+)\])?$");
