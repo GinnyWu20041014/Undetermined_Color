@@ -15,6 +15,14 @@ public class playerlight : MonoBehaviour
     [InspectorName("每秒消耗能量")]
     [SerializeField, Min(0f)] private float energyConsumptionPerSecond = 10f;
 
+    [Header("攻擊回復能量")]
+    [InspectorName("命中敵人回復能量")]
+    [Tooltip("每成功命中一名敵人時回復的能量。")]
+    [SerializeField, Min(0f)] private float energyRestoredOnHit = 5f;
+    [InspectorName("擊敗敵人額外回復能量")]
+    [Tooltip("實體血量歸零或擊敗本體轉為 NPC 時，額外回復的能量；會與命中回復相加。")]
+    [SerializeField, Min(0f)] private float energyRestoredOnDefeat = 30f;
+
     private float currentEnergy;
     private bool isLightOn;
 
@@ -57,6 +65,18 @@ public class playerlight : MonoBehaviour
     private void OnDisable()
     {
         SetLight(false);
+    }
+
+    /// <summary>由玩家攻擊在確實命中後呼叫；擊敗時額外回復。</summary>
+    public void RestoreEnergyFromAttack(bool defeatedEnemy)
+    {
+        float amount = Mathf.Max(0f, energyRestoredOnHit);
+        if (defeatedEnemy) amount += Mathf.Max(0f, energyRestoredOnDefeat);
+        currentEnergy = Mathf.Clamp(currentEnergy + amount, 0f, Mathf.Max(0f, initialEnergy));
+        if (energySlider != null)
+        {
+            energySlider.SetValueWithoutNotify(currentEnergy);
+        }
     }
 
     private void SetLight(bool enabled)

@@ -75,6 +75,8 @@ public class PlayerAttack : MonoBehaviour
         nextAttackTime = Time.time + attackCooldown;
         AttackStarted?.Invoke();
         Vector3 origin = attackDirection.position;
+        playerlight energy = GetComponentInParent<playerlight>();
+        if (energy == null) energy = GetComponentInChildren<playerlight>(true);
         EnemyStateHealth[] enemies = FindObjectsByType<EnemyStateHealth>(FindObjectsSortMode.None);
         foreach (EnemyStateHealth enemy in enemies)
         {
@@ -83,13 +85,15 @@ public class PlayerAttack : MonoBehaviour
                 continue;
             }
 
-            enemy.TryReceivePlayerAttack(attackDamage, origin, attackRange, transform.position);
+            if (enemy.TryReceivePlayerAttack(attackDamage, origin, attackRange, transform.position))
+                energy?.RestoreEnergyFromAttack(enemy.IsEntityDefeated || enemy.IsFriendly);
         }
 
         foreach (Monster32StateHealth enemy in FindObjectsByType<Monster32StateHealth>(FindObjectsSortMode.None))
         {
             if (enemy == null || enemy.transform.root == transform.root) continue;
-            enemy.TryReceivePlayerAttack(attackDamage, origin, attackRange, transform.position);
+            if (enemy.TryReceivePlayerAttack(attackDamage, origin, attackRange, transform.position))
+                energy?.RestoreEnergyFromAttack(enemy.IsEntityDefeated || enemy.IsFriendly);
         }
 
         Debug.Log("【攻擊系統】已使用圓形範圍發動攻擊。", this);

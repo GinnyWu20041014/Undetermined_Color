@@ -127,6 +127,27 @@ public class PlayerHealth : MonoBehaviour
         SetDeathImage(false);
     }
 
+    /// <summary>切換進場景時使用場景重生點，未標示時沿用既有重生點或玩家預設位置。</summary>
+    internal void ApplySceneEntrySpawn(Transform sceneSpawnPoint)
+    {
+        Transform target = sceneSpawnPoint != null ? sceneSpawnPoint : respawnPoint;
+        if (target == null || target.gameObject.scene != gameObject.scene) return;
+
+        Vector3 position = target.position;
+        playerBody.position = position;
+        if (playerRigidbody != null)
+        {
+            playerRigidbody.position = position;
+            if (!playerRigidbody.isKinematic)
+            {
+                playerRigidbody.linearVelocity = Vector3.zero;
+                playerRigidbody.angularVelocity = Vector3.zero;
+            }
+        }
+        initialPosition = position;
+        Physics.SyncTransforms();
+    }
+
     private void Update()
     {
         UpdateLowHealthScreen();

@@ -1,0 +1,96 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &1159556285306888668
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 672321748263559709}
+  - component: {fileID: 5237010318469060331}
+  m_Layer: 0
+  m_Name: Script Controller
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &672321748263559709
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1159556285306888668}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 1.488001, y: -6.901385, z: -10.902236}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &5237010318469060331
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1159556285306888668}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ca404a7bec154ce468b1f737ab199171, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  presets:
+  - id: player
+    role: 0
+    tag: Player
+    sourcePrefab: {fileID: 1028216717011249323, guid: 284a48fae22b52a46bcb13cefa10e70c, type: 3}
+    prefab: {fileID: 2269655619910034636, guid: 26344546ab96d5c4096857f5bef44461, type: 3}
+    sceneObjectName: player Variant
+  - id: enemy-sheep
+    role: 1
+    tag: Enemy
+    sourcePrefab: {fileID: 101447869152371862, guid: 6e3b7c8ef674ce84381b3d64fbe20874, type: 3}
+    prefab: {fileID: 8358975093474207391, guid: 82c9c73248363284dadf012a5de62faa, type: 3}
+    sceneObjectName: Enemy2  (1)
+  - id: enemy-flower
+    role: 1
+    tag: Enemy
+    sourcePrefab: {fileID: 6197354999828990288, guid: 96fead3931faff141a88d169353730b0, type: 3}
+    prefab: {fileID: 4006339919518133258, guid: a48e524d3ee89e94296ee2d19492ebc7, type: 3}
+    sceneObjectName: enemy3
+  - id: camera
+    role: 2
+    tag: MainCamera
+    sourcePrefab: {fileID: 0}
+    prefab: {fileID: 2508136827919673113, guid: e993f0b04d298de428866df003a80a1d, type: 3}
+    sceneObjectName: Main Camera
+  - id: ui
+    role: 3
+    tag: 
+    sourcePrefab: {fileID: 2368365389038169704, guid: c5e6a4adb9dbe3e4f88b8d3245446336, type: 3}
+    prefab: {fileID: 4222532394975665579, guid: 3ef0e686e9f303648a4cb2236c2f7b2f, type: 3}
+    sceneObjectName: Canvas
+  - id: volume
+    role: 3
+    tag: 
+    sourcePrefab: {fileID: 3878776206036363412, guid: dcbb363e9c95fcc43975ac2307147b11, type: 3}
+    prefab: {fileID: 7378547853872896124, guid: 20080b451d553c24eb9d1f0dfccbdfdd, type: 3}
+    sceneObjectName: Global Volume_Night
+  - id: feedback
+    role: 3
+    tag: 
+    sourcePrefab: {fileID: 0}
+    prefab: {fileID: 8135914781967060336, guid: b767950b129554e4aaf61d177893ad27, type: 3}
+    sceneObjectName: AttackFeedbackController
+  - id: event-system
+    role: 3
+    tag: 
+    sourcePrefab: {fileID: 0}
+    prefab: {fileID: 3464966862352977960, guid: 859e2a2795638ab4cb6529dede5f1b58, type: 3}
+    sceneObjectName: EventSystem
+  cameraOffset: {x: 4.91, y: 8.370001, z: -6.909999}
