@@ -8,6 +8,7 @@ public sealed class SmallMonsterCombat : MonoBehaviour
 {
     [SerializeField, Min(1), InspectorName("生命值")] private int maxHealth = 10;
     [SerializeField, Min(0.01f), InspectorName("受擊半徑")] private float hitRadius = 0.65f;
+    [Tooltip("分裂後的子體攻擊力為母體的一半，小數向下取整。")]
     [SerializeField, Min(0), InspectorName("攻擊力")] private int attackDamage = 5;
     [SerializeField, InspectorName("攻擊點")] private Transform attackPoint;
     [SerializeField, Min(0.01f), InspectorName("攻擊點半徑")] private float attackRadius = 0.65f;
@@ -23,6 +24,9 @@ public sealed class SmallMonsterCombat : MonoBehaviour
     private SmallMonsterDetection detection;
     private SmallMonsterAnimation animations;
     private EnemyAreaMovement movement;
+    public int CurrentHealth => health;
+    public int MaxHealth => Mathf.Max(1, maxHealth);
+    public int AttackDamage => attackDamage;
     public int Generation => generation;
     public bool IsDead => dead;
     public bool CanMove => isActiveAndEnabled && !dead && !summoning && !attacking;
@@ -33,7 +37,9 @@ public sealed class SmallMonsterCombat : MonoBehaviour
 
     private void Awake()
     {
-        health = Mathf.Max(1, maxHealth);
+        health = MaxHealth;
+        dead = summoning = attacking = false;
+        nextAttack = 0f;
         detection = GetComponent<SmallMonsterDetection>();
         animations = GetComponent<SmallMonsterAnimation>();
         movement = GetComponent<EnemyAreaMovement>();
@@ -118,6 +124,11 @@ public sealed class SmallMonsterCombat : MonoBehaviour
                 child.name = "分裂小球";
                 var combat = child.GetComponent<SmallMonsterCombat>();
                 combat.generation = generation + 1;
+                // 子體擁有獨立生命狀態，不能沿用母體的死亡狀態與剩餘血量。
+                combat.health = combat.MaxHealth;
+                combat.dead = combat.summoning = combat.attacking = false;
+                combat.nextAttack = 0f;
+                combat.attackDamage = Mathf.Max(0, attackDamage) / 2;
                 Vector3 position = FindSplitPosition(childRadius, i, neighbours, positions);
                 positions.Add(position);
                 child.transform.SetPositionAndRotation(position, transform.rotation);
@@ -129,6 +140,7 @@ public sealed class SmallMonsterCombat : MonoBehaviour
         }
         Destroy(gameObject);
     }
+
     private Vector3 FindSplitPosition(float radius, int childIndex, SmallMonsterCombat[] neighbours, List<Vector3> reserved)
     {
         Vector3 direction = Vector3.ProjectOnPlane(transform.right, Vector3.up).normalized;

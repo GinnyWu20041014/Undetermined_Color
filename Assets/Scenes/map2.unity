@@ -2822,7 +2822,7 @@ Transform:
   m_GameObject: {fileID: 330585543}
   serializedVersion: 2
   m_LocalRotation: {x: 0.27781588, y: -0.36497167, z: 0.1150751, w: 0.8811196}
-  m_LocalPosition: {x: 12.91, y: 8.52, z: -15.909999}
+  m_LocalPosition: {x: 26.749346, y: 8.52, z: -24.704212}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -16015,7 +16015,7 @@ PrefabInstance:
       objectReference: {fileID: 330585545}
     - target: {fileID: 2201394338906878152, guid: 284a48fae22b52a46bcb13cefa10e70c, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 8
+      value: 21.926464
       objectReference: {fileID: 0}
     - target: {fileID: 2201394338906878152, guid: 284a48fae22b52a46bcb13cefa10e70c, type: 3}
       propertyPath: m_LocalPosition.y
@@ -16023,7 +16023,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2201394338906878152, guid: 284a48fae22b52a46bcb13cefa10e70c, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -9
+      value: -17.794212
       objectReference: {fileID: 0}
     - target: {fileID: 2201394338906878152, guid: 284a48fae22b52a46bcb13cefa10e70c, type: 3}
       propertyPath: m_LocalRotation.w
@@ -16067,15 +16067,15 @@ PrefabInstance:
       objectReference: {fileID: 1009979875}
     - target: {fileID: 7438751631908975182, guid: 284a48fae22b52a46bcb13cefa10e70c, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 1.65506
+      value: -0.21888411
       objectReference: {fileID: 0}
     - target: {fileID: 7438751631908975182, guid: 284a48fae22b52a46bcb13cefa10e70c, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -16.272343
+      value: 1.4992285
       objectReference: {fileID: 0}
     - target: {fileID: 7438751631908975182, guid: 284a48fae22b52a46bcb13cefa10e70c, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -22.953669
+      value: 2.4267716
       objectReference: {fileID: 0}
     - target: {fileID: 8748442952425191656, guid: 284a48fae22b52a46bcb13cefa10e70c, type: 3}
       propertyPath: deathImage

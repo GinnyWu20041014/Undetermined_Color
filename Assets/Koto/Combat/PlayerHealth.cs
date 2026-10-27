@@ -16,6 +16,13 @@ public class PlayerHealth : MonoBehaviour
     [Tooltip("玩家復活時會回復至此血量。")]
     [SerializeField, Min(1)] private int maxHealth = 100;
 
+    [Header("自動回復生命")]
+    [InspectorName("受傷後回血等待秒數")]
+    [SerializeField, Min(0f)] private float healthRegenerationDelay = 5f;
+    [InspectorName("每秒回復血量")]
+    [Tooltip("連續未受傷達等待時間後逐漸回血；設為 0 可停用。")]
+    [SerializeField, Min(0f)] private float healthRegenerationPerSecond = 5f;
+
     [InspectorName("死亡後重置整個場景")]
     [Tooltip("開啟時，死亡畫面結束後重新載入目前場景，恢復所有機關與回想的初始狀態。")]
     [SerializeField] private bool resetSceneOnDeath = true;
@@ -83,6 +90,8 @@ public class PlayerHealth : MonoBehaviour
     private const int CriticalHealthThreshold = 20;
 
     private int currentHealth;
+    private float lastDamageTime;
+    private float pendingRegeneration;
     private bool isDead;
     private Vector3 initialPosition;
     private Transform playerBody;
@@ -107,6 +116,7 @@ public class PlayerHealth : MonoBehaviour
     private void Awake()
     {
         currentHealth = maxHealth;
+        ResetHealthRegeneration();
         SetupDeathVignette();
 
         if (playerMovement == null)
@@ -150,7 +160,32 @@ public class PlayerHealth : MonoBehaviour
 
     private void Update()
     {
+        UpdateHealthRegeneration();
         UpdateLowHealthScreen();
+    }
+
+    private void ResetHealthRegeneration()
+    {
+        lastDamageTime = Time.time;
+        pendingRegeneration = 0f;
+    }
+
+    private void UpdateHealthRegeneration()
+    {
+        if (isDead || currentHealth >= maxHealth)
+        {
+            pendingRegeneration = 0f;
+            return;
+        }
+
+        // 只累積等待期結束後的遊戲時間；暫停時不回血。
+        float recoveryTime = Mathf.Min(Time.deltaTime,
+            Mathf.Max(0f, Time.time - lastDamageTime - Mathf.Max(0f, healthRegenerationDelay)));
+        pendingRegeneration += recoveryTime * Mathf.Max(0f, healthRegenerationPerSecond);
+        int restoredHealth = Mathf.FloorToInt(pendingRegeneration);
+        if (restoredHealth <= 0) return;
+        currentHealth += Mathf.Min(restoredHealth, maxHealth - currentHealth);
+        pendingRegeneration -= restoredHealth;
     }
 
     /// <summary>以 X/Z 平面圓形範圍判定玩家是否受到敵人攻擊。</summary>
@@ -163,6 +198,7 @@ public class PlayerHealth : MonoBehaviour
 
         int actualDamage = Mathf.Min(currentHealth, damage);
         currentHealth = Mathf.Max(0, currentHealth - damage);
+        ResetHealthRegeneration();
         AttackFeedbackController.NotifyPlayerDamaged(gameObject, actualDamage);
         if (currentHealth > 0 && playerMovement != null)
             playerMovement.ApplyKnockback(attackerPosition ?? enemyPosition);
@@ -181,6 +217,7 @@ public class PlayerHealth : MonoBehaviour
         if (damage <= 0 || isDead) return;
         int actualDamage = Mathf.Min(currentHealth, damage);
         currentHealth = Mathf.Max(0, currentHealth - damage);
+        ResetHealthRegeneration();
         AttackFeedbackController.NotifyPlayerDamaged(gameObject, actualDamage);
         if (currentHealth == 0) StartCoroutine(DeathAndRespawn());
     }
@@ -230,6 +267,7 @@ public class PlayerHealth : MonoBehaviour
         }
         Physics.SyncTransforms();
         currentHealth = maxHealth;
+        ResetHealthRegeneration();
         RestoreDeathVignette();
         SetDeathImage(false);
         isDead = false;

@@ -25,9 +25,11 @@ public class playerlight : MonoBehaviour
 
     private float currentEnergy;
     private bool isLightOn;
+    private ScanningSystem scanningSystem;
 
     private void Awake()
     {
+        scanningSystem = GetComponent<ScanningSystem>();
         currentEnergy = Mathf.Max(0f, initialEnergy);
         SetLight(false);
 
@@ -43,6 +45,13 @@ public class playerlight : MonoBehaviour
 
     private void Update()
     {
+        if (scanningSystem == null) scanningSystem = GetComponent<ScanningSystem>();
+        if (scanningSystem != null && scanningSystem.IsScanning)
+        {
+            TurnOffLight();
+            return;
+        }
+
         if (Input.GetKeyDown(KeyCode.E))
         {
             SetLight(!isLightOn && currentEnergy > 0f);
@@ -63,6 +72,12 @@ public class playerlight : MonoBehaviour
     }
 
     private void OnDisable()
+    {
+        SetLight(false);
+    }
+
+    /// <summary>進入回想時立即關燈；結束回想後需由玩家重新開啟。</summary>
+    public void TurnOffLight()
     {
         SetLight(false);
     }

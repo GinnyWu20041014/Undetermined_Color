@@ -223,6 +223,8 @@ public class ScanningSystem : MonoBehaviour
         }
 
         IsScanning = enabled;
+        // 在狀態切換當下關燈，避免 Update 執行順序造成回想期間仍亮燈。
+        if (enabled) GetComponent<playerlight>()?.TurnOffLight();
 
         if (enabled)
         {
