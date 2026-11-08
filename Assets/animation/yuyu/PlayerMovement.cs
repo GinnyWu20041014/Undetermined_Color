@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public class PlayerMovement : MonoBehaviour
@@ -5,6 +6,13 @@ public class PlayerMovement : MonoBehaviour
     [Header("移動設定")]
     public float moveSpeed = 5f;
     public float ThornSpeedMultiplier { get; set; } = 1f;
+    private readonly Dictionary<MovingRainHazard, float> rainSlows = new Dictionary<MovingRainHazard, float>();
+
+    public void SetRainSlow(MovingRainHazard source, float multiplier)
+    {
+        if (multiplier < 1f) rainSlows[source] = Mathf.Clamp01(multiplier);
+        else rainSlows.Remove(source);
+    }
 
     [Header("受擊擊退")]
     [SerializeField, Min(0f)] private float knockbackDistance = 0.8f;
@@ -70,7 +78,10 @@ public class PlayerMovement : MonoBehaviour
         if (rb == null) return;
 
         // 進行物理平滑移動 (保留原本 Y 軸速度以維持自然重力/貼地)
-        Vector3 targetVelocity = movement * moveSpeed * Mathf.Clamp01(ThornSpeedMultiplier);
+        float rainMultiplier = 1f;
+        foreach (float multiplier in rainSlows.Values)
+            rainMultiplier = Mathf.Min(rainMultiplier, multiplier);
+        Vector3 targetVelocity = movement * moveSpeed * Mathf.Clamp01(ThornSpeedMultiplier) * rainMultiplier;
         if (isKnockedBack)
         {
             float duration = Mathf.Max(0.01f, knockbackDuration);
@@ -95,6 +106,7 @@ public class PlayerMovement : MonoBehaviour
     private void OnDisable()
     {
         ThornSpeedMultiplier = 1f;
+        rainSlows.Clear();
         isKnockedBack = false;
         movement = Vector3.zero;
         if (rb != null && !rb.isKinematic)

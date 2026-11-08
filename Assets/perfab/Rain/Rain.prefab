@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 1993200003}
   - component: {fileID: 1993200004}
   - component: {fileID: 1993200005}
+  - component: {fileID: 2389658579751393704}
   m_Layer: 0
   m_Name: Rain
   m_TagString: Untagged
@@ -4853,8 +4854,25 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: cb94d9f154bb458595257fbe03988d68, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
-  dropSize: 0.06
-  rainColor: {r: 0.7, g: 0.82, b: 1, a: 0.55}
-  density: 500
+  m_Name: 
+  m_EditorClassIdentifier: 
+  dropSize: 0.05
+  rainColor: {r: 0.09545741, g: 0.115210585, b: 0.15471691, a: 0.55}
+  density: 1000
+--- !u!114 &2389658579751393704
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1993200001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4c2b28316171830a7aca3330a09c19c9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  moveSpeed: 0.5
+  wetSpeedMultiplier: 0.6
+  wetDuration: 0.3
+  contactRadius: 0.75
+  contactHeight: 0.75

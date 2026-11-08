@@ -27,6 +27,8 @@ public class playerlight : MonoBehaviour
     private bool isLightOn;
     private ScanningSystem scanningSystem;
 
+    public Light ActiveLight => isLightOn && playerLight != null && playerLight.isActiveAndEnabled ? playerLight : null;
+
     private void Awake()
     {
         scanningSystem = GetComponent<ScanningSystem>();
