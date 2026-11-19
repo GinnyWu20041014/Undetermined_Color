@@ -87,7 +87,7 @@ public class AutoDepthSortManager : MonoBehaviour
             foreach (GameObject targetObject in taggedObjects)
             {
                 if (!foundObjects.Add(targetObject) ||
-                    targetObject.GetComponentInChildren<SpriteRenderer>(true) == null)
+                    targetObject.GetComponentInChildren<Renderer>(true) == null)
                 {
                     continue;
                 }
@@ -114,7 +114,7 @@ public class AutoDepthSortManager : MonoBehaviour
 
             // cameraSpace.z 是物件沿鏡頭正前方的真正前後深度；
             // 不是受左右位置影響的直線距離。
-            int sortingOrder = GetSortingOrder(sortingGroup.transform.position);
+            int sortingOrder = GetSortingOrder(GetSortingPoint(sortingGroup));
 
             sortingGroup.sortingLayerName = sortingLayerName;
             sortingGroup.sortingOrder = sortingOrder;
@@ -136,6 +136,55 @@ public class AutoDepthSortManager : MonoBehaviour
     {
         float cameraDepth = targetCamera.transform.InverseTransformPoint(worldPosition).z;
         return Mathf.Clamp(Mathf.RoundToInt(-cameraDepth * sortingScale), -32768, 32767);
+    }
+
+    private Vector3 GetSortingPoint(SortingGroup sortingGroup)
+    {
+        if (sortingGroup.gameObject.name != "B_8_3")
+        {
+            return sortingGroup.transform.position;
+        }
+
+        GameObject[] players;
+        try
+        {
+            players = GameObject.FindGameObjectsWithTag("Player");
+        }
+        catch (UnityException)
+        {
+            return sortingGroup.transform.position;
+        }
+
+        if (players.Length == 0)
+        {
+            return sortingGroup.transform.position;
+        }
+
+        // Find the closest point on every renderer's local bounds to the player.
+        // This follows the object's actual rotated bounds instead of its pivot.
+        float closestDistance = float.PositiveInfinity;
+        Vector3 sortingPoint = sortingGroup.transform.position;
+        Renderer[] renderers = sortingGroup.GetComponentsInChildren<Renderer>(true);
+
+        foreach (GameObject player in players)
+        {
+            Vector3 playerPosition = player.transform.position;
+            foreach (Renderer targetRenderer in renderers)
+            {
+                Transform rendererTransform = targetRenderer.transform;
+                Vector3 localPlayerPosition = rendererTransform.InverseTransformPoint(playerPosition);
+                Vector3 localClosestPoint = targetRenderer.localBounds.ClosestPoint(localPlayerPosition);
+                Vector3 worldClosestPoint = rendererTransform.TransformPoint(localClosestPoint);
+                float distance = (worldClosestPoint - playerPosition).sqrMagnitude;
+                if (distance < closestDistance)
+                {
+                    closestDistance = distance;
+                    sortingPoint = worldClosestPoint;
+                }
+            }
+        }
+
+        return sortingPoint;
     }
 
     public bool ApplyDepthSorting(SortingGroup targetGroup, Vector3 worldPosition, int orderOffset)

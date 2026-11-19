@@ -46,8 +46,10 @@ public class ScanningSystem : MonoBehaviour
     private RenderTexture interactionMask;
     private Material scanOverlayMaterial;
     private Shader silhouetteShader;
+    private Material scanOccluderMaterial;
     private readonly Dictionary<Renderer, Material> interactionRenderers = new Dictionary<Renderer, Material>();
     private readonly HashSet<Renderer> outlinedRenderers = new HashSet<Renderer>();
+    private readonly List<Renderer> scanOccluders = new List<Renderer>();
     private float nextInteractionRefresh;
 
     private void OnEnable()
@@ -79,7 +81,7 @@ public class ScanningSystem : MonoBehaviour
         if (interactionMask == null || interactionMask.width != Screen.width || interactionMask.height != Screen.height)
         {
             if (interactionMask != null) { interactionMask.Release(); Destroy(interactionMask); }
-            interactionMask = new RenderTexture(Mathf.Max(1, Screen.width), Mathf.Max(1, Screen.height), 0);
+            interactionMask = new RenderTexture(Mathf.Max(1, Screen.width), Mathf.Max(1, Screen.height), 24);
             interactionMask.name = "Scanning Interaction Silhouettes";
             interactionMask.wrapMode = TextureWrapMode.Clamp;
             interactionMask.Create();
@@ -90,12 +92,20 @@ public class ScanningSystem : MonoBehaviour
         using (CommandBuffer commands = new CommandBuffer())
         {
             commands.SetRenderTarget(interactionMask);
-            commands.ClearRenderTarget(false, true, Color.clear);
+            commands.ClearRenderTarget(true, true, Color.clear);
             commands.SetViewport(view.pixelRect);
             // 在鏡頭完成跟隨、物件完成動畫後才繪製；明確傳入同一台鏡頭的投影。
             // 不依賴 URP 尚未設定好的 Unity 全域攝影機矩陣。
             commands.SetGlobalMatrix("_ScanViewProjection",
                 GL.GetGPUProjectionMatrix(view.projectionMatrix, true) * view.worldToCameraMatrix);
+            foreach (Renderer occluder in scanOccluders)
+            {
+                if (scanOccluderMaterial == null || occluder == null || !occluder.enabled || !occluder.gameObject.activeInHierarchy ||
+                    (view.cullingMask & (1 << occluder.gameObject.layer)) == 0) continue;
+                int submeshCount = Mathf.Max(1, occluder.sharedMaterials.Length);
+                for (int submesh = 0; submesh < submeshCount; submesh++)
+                    commands.DrawRenderer(occluder, scanOccluderMaterial, submesh, 0);
+            }
             foreach (var entry in interactionRenderers)
             {
                 Renderer renderer = entry.Key;
@@ -138,6 +148,22 @@ public class ScanningSystem : MonoBehaviour
         foreach (Material material in interactionRenderers.Values) Destroy(material);
         interactionRenderers.Clear();
         outlinedRenderers.Clear();
+        scanOccluders.Clear();
+        foreach (Renderer renderer in Resources.FindObjectsOfTypeAll<Renderer>())
+        {
+            if (renderer == null || !renderer.gameObject.scene.IsValid() ||
+                renderer.gameObject.scene.name != "dormitory") continue;
+            bool blocksScan = false;
+            for (Transform current = renderer.transform; current != null; current = current.parent)
+            {
+                if (current.name == "B_8_3" || current.CompareTag("Player"))
+                {
+                    blocksScan = true;
+                    break;
+                }
+            }
+            if (blocksScan) scanOccluders.Add(renderer);
+        }
         if (silhouetteShader == null) return;
         if (!string.IsNullOrWhiteSpace(interactionTag) && IsTagDefined(interactionTag))
             foreach (GameObject target in GameObject.FindGameObjectsWithTag(interactionTag))
@@ -294,6 +320,7 @@ public class ScanningSystem : MonoBehaviour
     {
         foreach (Material material in interactionRenderers.Values) Destroy(material);
         if (scanOverlayMaterial != null) Destroy(scanOverlayMaterial);
+        if (scanOccluderMaterial != null) Destroy(scanOccluderMaterial);
         if (interactionMask != null) { interactionMask.Release(); Destroy(interactionMask); }
         if (ringTransform != null)
         {
@@ -346,6 +373,8 @@ public class ScanningSystem : MonoBehaviour
         image.color = scanMaskColor;
         image.raycastTarget = false;
         silhouetteShader = Resources.Load<Shader>("ScanInteractionSilhouette");
+        Shader occluderShader = Resources.Load<Shader>("ScanInteractionDepth");
+        if (occluderShader != null) scanOccluderMaterial = new Material(occluderShader);
         Shader overlayShader = Resources.Load<Shader>("ScanInteractionOverlay");
         if (silhouetteShader != null && overlayShader != null)
         {
