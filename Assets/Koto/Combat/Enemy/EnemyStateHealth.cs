@@ -47,7 +47,7 @@ public sealed class EnemyStateHealth : MonoBehaviour
 
     [Header("怪物本體與光源")]
     [InspectorName("怪物本體")]
-    [Tooltip("放入身後的影紋／怪物本體；受光時持續顯示，失去光照 3 秒後隱藏。")]
+    [Tooltip("放入身後的影紋／怪物本體；實體受光時持續顯示，失光 3 秒後隱藏。")]
     [SerializeField] private GameObject body = null;
 
     [InspectorName("本體受擊半徑")]
@@ -55,7 +55,7 @@ public sealed class EnemyStateHealth : MonoBehaviour
     [SerializeField, Min(0.01f)] private float bodyHitRadius = 0.75f;
 
     [InspectorName("偵測光源")]
-    [Tooltip("可增加多個 Light；任一光源照射時持續顯示，全部失去光照 3 秒後隱藏。")]
+    [Tooltip("只指定玩家光源。以 Enemy2 實體位置判定距離與聚光燈角度。")]
     [SerializeField] private Light[] lightSources = System.Array.Empty<Light>();
 
     private int entityHealth;
@@ -91,9 +91,14 @@ public sealed class EnemyStateHealth : MonoBehaviour
     public event Action BecameFriendly;
     public event Action Revived;
 
-    private void Start() => Initialize();
+    // 在第一幀渲染前套用外觀狀態，避免場景中仍啟用的 Prefab 子物件先被看見。
+    private void Awake() => Initialize();
 
-    private void Update() => UpdateBodyIllumination();
+    private void Update()
+    {
+        UpdateBodyIllumination();
+        SetActive(body, BodyCanAppear);
+    }
 
     private void OnDisable() => ResetBodyIllumination();
 
@@ -141,6 +146,7 @@ public sealed class EnemyStateHealth : MonoBehaviour
         }
         ApplyStatusVisuals();
         UpdateBodyIllumination();
+        SetActive(body, BodyCanAppear);
     }
 
     public void TakeDamage(int damage)
@@ -265,14 +271,15 @@ public sealed class EnemyStateHealth : MonoBehaviour
 
     private bool IsBodyIlluminated()
     {
-        if (body == null)
+        if (entity == null)
         {
             return false;
         }
 
         foreach (Light lightSource in lightSources)
         {
-            if (lightSource == null || !lightSource.isActiveAndEnabled)
+            if (lightSource == null || !lightSource.isActiveAndEnabled || lightSource.intensity <= 0f ||
+                (lightSource.cullingMask & (1 << entity.layer)) == 0)
             {
                 continue;
             }
@@ -282,7 +289,7 @@ public sealed class EnemyStateHealth : MonoBehaviour
                 return true;
             }
 
-            Vector3 offset = body.transform.position - lightSource.transform.position;
+            Vector3 offset = entity.transform.position - lightSource.transform.position;
             if (offset.sqrMagnitude > lightSource.range * lightSource.range)
             {
                 continue;
