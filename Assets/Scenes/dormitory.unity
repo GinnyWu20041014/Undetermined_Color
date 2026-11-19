@@ -738,6 +738,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 2413703352919998514, guid: 8c161b15e7b14f74ea744b168b05f75a, type: 3}
+      propertyPath: nextScene
+      value: 
+      objectReference: {fileID: 102900000, guid: 68eb3c40de730244cb533fb57dd18b55, type: 3}
+    - target: {fileID: 2413703352919998514, guid: 8c161b15e7b14f74ea744b168b05f75a, type: 3}
+      propertyPath: nextScenePath
+      value: Assets/Scenes/map1.unity
+      objectReference: {fileID: 0}
     - target: {fileID: 3998772330558013588, guid: 8c161b15e7b14f74ea744b168b05f75a, type: 3}
       propertyPath: m_LocalPosition.x
       value: 10.16
