@@ -201,7 +201,12 @@ public sealed class EnemyAnimationController : MonoBehaviour
         if (movement != null) movement.Moved -= OnMoved;
     }
 
-    private void Update() => UpdateBodyVisibility();
+    private void Update()
+    {
+        UpdateBodyVisibility();
+        if (state != null && state.IsFriendly)
+            SetNpcLocomotionAnimation(false);
+    }
 
     private void OnMoved(Vector3 displacement)
     {
@@ -223,7 +228,6 @@ public sealed class EnemyAnimationController : MonoBehaviour
     private void OnCombatInterrupted()
     {
         CancelAllSummons(false);
-        SetActive(body, false);
         SetEntityHasBodyParameter(false);
         bodyWasVisible = false;
         hasBodyAnimationState = false;
@@ -251,7 +255,6 @@ public sealed class EnemyAnimationController : MonoBehaviour
         Unbind();
         CancelAllSummons(false);
         combat?.CancelAllAttacks(false);
-        SetActive(body, false);
         hasEntityAnimationState = false;
         hasBodyAnimationState = false;
         bodyWasVisible = false;
@@ -668,7 +671,7 @@ public sealed class EnemyAnimationController : MonoBehaviour
             return;
         }
 
-        SetEntityHasBodyParameter(body != null && body.activeInHierarchy);
+        SetEntityHasBodyParameter(state != null && state.BodyCanAppear);
         bool usesMovingParameter = TrySetBoolParameter(entityAttackAnimator, entityMovingBoolParameterName, isMoving);
         if (usesMovingParameter && isMoving)
         {
@@ -708,7 +711,7 @@ public sealed class EnemyAnimationController : MonoBehaviour
 
     private string GetEntityIdleAnimationStateName()
     {
-        if (body != null && body.activeInHierarchy &&
+        if (state != null && state.BodyCanAppear && body != null && body.activeInHierarchy &&
             !string.IsNullOrWhiteSpace(entitySummonedIdleAnimationStateName))
         {
             return entitySummonedIdleAnimationStateName;
@@ -719,7 +722,7 @@ public sealed class EnemyAnimationController : MonoBehaviour
 
     public void SetBodyIdleAnimation()
     {
-        if (isBodyAttacking || isBodySummoning || body == null || !body.activeInHierarchy || bodyAttackAnimator == null)
+        if (isBodyAttacking || isBodySummoning || body == null || state == null || !state.BodyCanAppear || bodyAttackAnimator == null)
         {
             return;
         }
@@ -737,10 +740,9 @@ public sealed class EnemyAnimationController : MonoBehaviour
         bool shouldBeVisible = state != null && !state.IsFriendly && state.BodyCanAppear;
         if (!shouldBeVisible)
         {
-            bool wasVisible = bodyWasVisible || body.activeSelf;
+            bool wasVisible = bodyWasVisible;
             combat?.CancelBodyAttack(false);
             CancelAllSummons(false);
-            SetActive(body, false);
             SetEntityHasBodyParameter(false);
             bodyWasVisible = false;
             hasBodyAnimationState = false;
@@ -754,9 +756,8 @@ public sealed class EnemyAnimationController : MonoBehaviour
         }
 
         // 僅在本體由隱藏轉為顯示時召喚；失光倒數期間重新受光不重播。
-        if (!bodyWasVisible || !body.activeSelf)
+        if (!bodyWasVisible)
         {
-            SetActive(body, true);
             SetEntityHasBodyParameter(true);
             bodyWasVisible = true;
             hasBodyAnimationState = false;

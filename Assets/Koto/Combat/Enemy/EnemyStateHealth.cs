@@ -68,6 +68,8 @@ public sealed class EnemyStateHealth : MonoBehaviour
 
     private GameObject npcInstance;
     private readonly Dictionary<Renderer, bool> entityRendererStates = new Dictionary<Renderer, bool>();
+    private readonly Dictionary<Renderer, bool> npcRendererStates = new Dictionary<Renderer, bool>();
+    private readonly Dictionary<Renderer, bool> bodyRendererStates = new Dictionary<Renderer, bool>();
 
     private bool initialized;
     private Coroutine reviveRoutine;
@@ -97,10 +99,14 @@ public sealed class EnemyStateHealth : MonoBehaviour
     private void Update()
     {
         UpdateBodyIllumination();
-        SetActive(body, BodyCanAppear);
+        SetRenderersVisible(bodyRendererStates, BodyCanAppear);
     }
 
-    private void OnDisable() => ResetBodyIllumination();
+    private void OnDisable()
+    {
+        ResetBodyIllumination();
+        SetRenderersVisible(bodyRendererStates, false);
+    }
 
     private void UpdateBodyIllumination()
     {
@@ -144,9 +150,13 @@ public sealed class EnemyStateHealth : MonoBehaviour
             foreach (Renderer renderer in entity.GetComponentsInChildren<Renderer>(true))
                 entityRendererStates[renderer] = renderer.enabled;
         }
+        CacheAppearanceRenderers(normalNpc, npcRendererStates);
+        CacheAppearanceRenderers(body, bodyRendererStates);
+        // Keep the Animator hierarchy alive; visibility is controlled through its renderers.
+        SetActive(body, true);
         ApplyStatusVisuals();
         UpdateBodyIllumination();
-        SetActive(body, BodyCanAppear);
+        SetRenderersVisible(bodyRendererStates, BodyCanAppear);
     }
 
     public void TakeDamage(int damage)
@@ -159,6 +169,7 @@ public sealed class EnemyStateHealth : MonoBehaviour
 
         entityDefeated = true;
         ResetBodyIllumination();
+        SetRenderersVisible(bodyRendererStates, false);
         CombatInterrupted?.Invoke();
         reviveRoutine = StartCoroutine(ReviveEntity());
     }
@@ -197,7 +208,7 @@ public sealed class EnemyStateHealth : MonoBehaviour
     private IEnumerator ReviveEntity()
     {
         revivePosition = transform.position;
-        SetActive(body, false);
+        SetRenderersVisible(bodyRendererStates, false);
         Debug.Log($"【敵人】實體血量歸零，將在原地等待 {reviveDelay:0.##} 秒後復活。", this);
         yield return new WaitForSeconds(reviveDelay);
         transform.position = revivePosition;
@@ -220,7 +231,7 @@ public sealed class EnemyStateHealth : MonoBehaviour
         entityDefeated = false;
         CombatInterrupted?.Invoke();
         ApplyStatusVisuals();
-        SetActive(body, false);
+        SetRenderersVisible(bodyRendererStates, false);
         BecameFriendly?.Invoke();
         Debug.Log("【敵人】本體血量歸零，已切換友好狀態並顯示 NPC 物件。", this);
     }
@@ -250,6 +261,7 @@ public sealed class EnemyStateHealth : MonoBehaviour
                 Transform anchor = entity != null ? entity.transform : transform;
                 Transform parent = anchor.parent != null && anchor.IsChildOf(transform) ? anchor.parent : transform;
                 npcInstance = Instantiate(normalNpc, anchor.position, anchor.rotation, parent);
+                CacheAppearanceRenderers(npcInstance, npcRendererStates);
             }
         }
 
@@ -261,11 +273,13 @@ public sealed class EnemyStateHealth : MonoBehaviour
             if (npcInstance != null && renderer.transform.IsChildOf(npcInstance.transform)) continue;
             renderer.enabled = entry.Value && !(isFriendly && npcInstance != null);
         }
-        SetActive(npcInstance, isFriendly);
+        // 保持 Animator 所在物件啟用，僅切換 Renderer，避免初始停用後 Animator 無法接續播放。
+        SetActive(npcInstance, true);
+        SetRenderersVisible(npcRendererStates, isFriendly);
 
         if (isFriendly)
         {
-            SetActive(body, false);
+            SetRenderersVisible(bodyRendererStates, false);
         }
     }
 
@@ -310,6 +324,22 @@ public sealed class EnemyStateHealth : MonoBehaviour
         if (targetObject != null && targetObject.activeSelf != active)
         {
             targetObject.SetActive(active);
+        }
+    }
+
+    private static void CacheAppearanceRenderers(GameObject target, Dictionary<Renderer, bool> states)
+    {
+        if (target == null) return;
+        foreach (Renderer renderer in target.GetComponentsInChildren<Renderer>(true))
+            states[renderer] = renderer.enabled;
+    }
+
+    private static void SetRenderersVisible(Dictionary<Renderer, bool> states, bool visible)
+    {
+        foreach (var entry in states)
+        {
+            if (entry.Key != null)
+                entry.Key.enabled = visible && entry.Value;
         }
     }
     private void OnDrawGizmosSelected()
