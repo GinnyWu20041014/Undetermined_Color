@@ -1,0 +1,889 @@
+fileFormatVersion: 2
+guid: ec63244473d65e340934026073cf33c6
+TextureImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 0
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Android
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: yuan attack_0
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 5345
+        width: 1066
+        height: 1069
+      alignment: 9
+      pivot: {x: 0.65, y: 0.09}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: b0970d7cce59678489ba3a4b323f6ca3
+      internalID: 1621909936
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: yuan attack_1
+      rect:
+        serializedVersion: 2
+        x: 1066
+        y: 5345
+        width: 1066
+        height: 1069
+      alignment: 9
+      pivot: {x: 0.65, y: 0.09}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: a5cc12c6cefae3e45859b4b441d331bb
+      internalID: -1287095533
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: yuan attack_2
+      rect:
+        serializedVersion: 2
+        x: 2132
+        y: 5345
+        width: 1066
+        height: 1069
+      alignment: 9
+      pivot: {x: 0.65, y: 0.09}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 256cf1df2830a144cb8c3067fbecd6a8
+      internalID: -1542171621
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: yuan attack_3
+      rect:
+        serializedVersion: 2
+        x: 3198
+        y: 5345
+        width: 1066
+        height: 1069
+      alignment: 9
+      pivot: {x: 0.65, y: 0.09}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: e091b5b9eb7efed48bf5ba5ff6b8f665
+      internalID: 484212735
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: yuan attack_4
+      rect:
+        serializedVersion: 2
+        x: 4264
+        y: 5345
+        width: 1066
+        height: 1069
+      alignment: 9
+      pivot: {x: 0.65, y: 0.09}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 20fdaf8f64ae26e4ba7205d4f35c6763
+      internalID: 1919543012
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: yuan attack_5
+      rect:
+        serializedVersion: 2
+        x: 5330
+        y: 5345
+        width: 1066
+        height: 1069
+      alignment: 9
+      pivot: {x: 0.65, y: 0.09}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 6ae3d02ca75c7fe42b2f2f55abb81d6e
+      internalID: -1762033020
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: yuan attack_6
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 4276
+        width: 1066
+        height: 1069
+      alignment: 9
+      pivot: {x: 0.65, y: 0.09}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: c5c5ee5d54da8cb4db61f5330493b0be
+      internalID: 972109960
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: yuan attack_7
+      rect:
+        serializedVersion: 2
+        x: 1066
+        y: 4276
+        width: 1066
+        height: 1069
+      alignment: 9
+      pivot: {x: 0.65, y: 0.09}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 6c68934b6002dbd42880c3056c318443
+      internalID: 24867876
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: yuan attack_8
+      rect:
+        serializedVersion: 2
+        x: 2132
+        y: 4276
+        width: 1066
+        height: 1069
+      alignment: 9
+      pivot: {x: 0.65, y: 0.09}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 05557642861f8544eb60a2bd6dfa00f7
+      internalID: 878046904
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: yuan attack_9
+      rect:
+        serializedVersion: 2
+        x: 3198
+        y: 4276
+        width: 1066
+        height: 1069
+      alignment: 9
+      pivot: {x: 0.65, y: 0.09}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 2ba63d872809a80479a3da79ba1fa1b7
+      internalID: 447596376
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: yuan attack_10
+      rect:
+        serializedVersion: 2
+        x: 4264
+        y: 4276
+        width: 1066
+        height: 1069
+      alignment: 9
+      pivot: {x: 0.65, y: 0.09}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: ce836ed8d92657141a2fba45a86a897c
+      internalID: 395109846
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: yuan attack_11
+      rect:
+        serializedVersion: 2
+        x: 5330
+        y: 4276
+        width: 1066
+        height: 1069
+      alignment: 9
+      pivot: {x: 0.65, y: 0.09}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: cfa015bea3129e94d85a9983220f0b61
+      internalID: -1423002635
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: yuan attack_12
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 3207
+        width: 1066
+        height: 1069
+      alignment: 9
+      pivot: {x: 0.65, y: 0.09}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: e9754adb9589bc94f897c6ecc731753c
+      internalID: 27520080
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: yuan attack_13
+      rect:
+        serializedVersion: 2
+        x: 1066
+        y: 3207
+        width: 1066
+        height: 1069
+      alignment: 9
+      pivot: {x: 0.65, y: 0.09}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 5af9406bce235d343be514a2be69fe8b
+      internalID: -103299527
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: yuan attack_14
+      rect:
+        serializedVersion: 2
+        x: 2132
+        y: 3207
+        width: 1066
+        height: 1069
+      alignment: 9
+      pivot: {x: 0.65, y: 0.09}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 8e27ee390c970a0479cf4282b5c04134
+      internalID: -1300480216
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: yuan attack_15
+      rect:
+        serializedVersion: 2
+        x: 3198
+        y: 3207
+        width: 1066
+        height: 1069
+      alignment: 9
+      pivot: {x: 0.65, y: 0.09}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 421f749fa0f692b4f9df91374a27142f
+      internalID: -1137287135
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: yuan attack_16
+      rect:
+        serializedVersion: 2
+        x: 4264
+        y: 3207
+        width: 1066
+        height: 1069
+      alignment: 9
+      pivot: {x: 0.65, y: 0.09}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 20403ed4a2214fe4cb138b33c35c9692
+      internalID: 1391971168
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: yuan attack_17
+      rect:
+        serializedVersion: 2
+        x: 5330
+        y: 3207
+        width: 1066
+        height: 1069
+      alignment: 9
+      pivot: {x: 0.65, y: 0.09}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: adccc339549816048b38761679959794
+      internalID: 1123894048
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: yuan attack_18
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 2138
+        width: 1066
+        height: 1069
+      alignment: 9
+      pivot: {x: 0.65, y: 0.09}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: e254403252cb2ff44b7e427b01459ff0
+      internalID: 1601063191
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: yuan attack_19
+      rect:
+        serializedVersion: 2
+        x: 1066
+        y: 2138
+        width: 1066
+        height: 1069
+      alignment: 9
+      pivot: {x: 0.65, y: 0.09}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 0b530a8cccd794349a9e7017e4fbbc20
+      internalID: -1029390161
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: yuan attack_20
+      rect:
+        serializedVersion: 2
+        x: 2132
+        y: 2138
+        width: 1066
+        height: 1069
+      alignment: 9
+      pivot: {x: 0.65, y: 0.09}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: af9d7d97edd3fda49b554f64d65dab6e
+      internalID: 2072580076
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: yuan attack_21
+      rect:
+        serializedVersion: 2
+        x: 3198
+        y: 2138
+        width: 1066
+        height: 1069
+      alignment: 9
+      pivot: {x: 0.65, y: 0.09}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 07ff74fc7ef92a1488f3598b4ceca4b2
+      internalID: -1755928253
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: yuan attack_22
+      rect:
+        serializedVersion: 2
+        x: 4264
+        y: 2138
+        width: 1066
+        height: 1069
+      alignment: 9
+      pivot: {x: 0.65, y: 0.09}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: fbfae8b2b568e2149b0e5d129d9b3e5a
+      internalID: -1504432540
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: yuan attack_23
+      rect:
+        serializedVersion: 2
+        x: 5330
+        y: 2138
+        width: 1066
+        height: 1069
+      alignment: 9
+      pivot: {x: 0.65, y: 0.09}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 9d63be5c7877b684aa26ee3c2cf6bce1
+      internalID: -509526734
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: yuan attack_24
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 1069
+        width: 1066
+        height: 1069
+      alignment: 9
+      pivot: {x: 0.65, y: 0.09}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 9f7bca7be0f921d4e9d2fa0694ea5312
+      internalID: 1126119092
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: yuan attack_25
+      rect:
+        serializedVersion: 2
+        x: 1066
+        y: 1069
+        width: 1066
+        height: 1069
+      alignment: 9
+      pivot: {x: 0.65, y: 0.09}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: b5d81630364407648ad13f70e5e648eb
+      internalID: -1197874486
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: yuan attack_26
+      rect:
+        serializedVersion: 2
+        x: 2132
+        y: 1069
+        width: 1066
+        height: 1069
+      alignment: 9
+      pivot: {x: 0.65, y: 0.09}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 014840cccda78984c9050598a0c39ed7
+      internalID: -831308790
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: yuan attack_27
+      rect:
+        serializedVersion: 2
+        x: 3198
+        y: 1069
+        width: 1066
+        height: 1069
+      alignment: 9
+      pivot: {x: 0.65, y: 0.09}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 8c6bb7858b0d29a4faccc51f5754db8d
+      internalID: 108444422
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: yuan attack_28
+      rect:
+        serializedVersion: 2
+        x: 4264
+        y: 1069
+        width: 1066
+        height: 1069
+      alignment: 9
+      pivot: {x: 0.65, y: 0.09}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 9398e757df7e7934b98c17d91d49329b
+      internalID: 381690774
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: yuan attack_29
+      rect:
+        serializedVersion: 2
+        x: 5330
+        y: 1069
+        width: 1066
+        height: 1069
+      alignment: 9
+      pivot: {x: 0.65, y: 0.09}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: e888a2f8423998647a294c1c4fd3156b
+      internalID: 1975633565
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: yuan attack_30
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 1066
+        height: 1069
+      alignment: 9
+      pivot: {x: 0.65, y: 0.09}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: e0ac39ac24f57214cb49b34368ee009e
+      internalID: -2048941442
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: yuan attack_31
+      rect:
+        serializedVersion: 2
+        x: 1066
+        y: 0
+        width: 1066
+        height: 1069
+      alignment: 9
+      pivot: {x: 0.65, y: 0.09}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 9bdeabc3765494547ad794c69c245a06
+      internalID: 979289680
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: yuan attack_32
+      rect:
+        serializedVersion: 2
+        x: 2132
+        y: 0
+        width: 1066
+        height: 1069
+      alignment: 9
+      pivot: {x: 0.65, y: 0.09}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 005c84eb426c3a741b5a72f937087eff
+      internalID: -1405278254
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 0696da14bc170fb4ab97bcf93ed504f5
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      yuan attack_0: 1621909936
+      yuan attack_1: -1287095533
+      yuan attack_10: 395109846
+      yuan attack_11: -1423002635
+      yuan attack_12: 27520080
+      yuan attack_13: -103299527
+      yuan attack_14: -1300480216
+      yuan attack_15: -1137287135
+      yuan attack_16: 1391971168
+      yuan attack_17: 1123894048
+      yuan attack_18: 1601063191
+      yuan attack_19: -1029390161
+      yuan attack_2: -1542171621
+      yuan attack_20: 2072580076
+      yuan attack_21: -1755928253
+      yuan attack_22: -1504432540
+      yuan attack_23: -509526734
+      yuan attack_24: 1126119092
+      yuan attack_25: -1197874486
+      yuan attack_26: -831308790
+      yuan attack_27: 108444422
+      yuan attack_28: 381690774
+      yuan attack_29: 1975633565
+      yuan attack_3: 484212735
+      yuan attack_30: -2048941442
+      yuan attack_31: 979289680
+      yuan attack_32: -1405278254
+      yuan attack_4: 1919543012
+      yuan attack_5: -1762033020
+      yuan attack_6: 972109960
+      yuan attack_7: 24867876
+      yuan attack_8: 878046904
+      yuan attack_9: 447596376
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

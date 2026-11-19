@@ -28,9 +28,17 @@ public sealed class YuanPlayerAnimationController : MonoBehaviour
     [Header("攻擊動畫")]
     [InspectorName("攻擊動畫狀態名称")]
     [SerializeField] private string attackStateName = "Base Layer.attack1";
+    [InspectorName("第二段攻擊動畫狀態名稱")]
+    [SerializeField] private string secondAttackStateName = "Base Layer.attack2";
+    [InspectorName("第三段攻擊動畫狀態名稱")]
+    [SerializeField] private string thirdAttackStateName = "Base Layer.attack3";
+    [InspectorName("連段輸入時間（秒）")]
+    [SerializeField, Min(0f)] private float attackComboInputWindow = 5f;
     private PlayerAttack subscribedAttack;
     private bool isPlayingAttack;
     private int attackStartedFrame;
+    private int nextAttackIndex;
+    private float comboInputDeadline;
 
     private void OnEnable() => BindAttack();
 
@@ -53,19 +61,36 @@ public sealed class YuanPlayerAnimationController : MonoBehaviour
     public void PlayAttackAnimation()
     {
         if (yuanAnimator == null || !yuanAnimator.isActiveAndEnabled ||
-            (playerHealth != null && playerHealth.IsDead) || string.IsNullOrWhiteSpace(attackStateName)) return;
-        int hash = Animator.StringToHash(attackStateName);
+            (playerHealth != null && playerHealth.IsDead)) return;
+
+        // 連段只在上一段完整播完後開放輸入；逾時則從第一段重新開始。
+        if (isPlayingAttack) return;
+        if (nextAttackIndex > 0 && Time.time > comboInputDeadline) nextAttackIndex = 0;
+
+        string stateName = GetAttackStateName(nextAttackIndex);
+        if (string.IsNullOrWhiteSpace(stateName)) return;
+        int hash = Animator.StringToHash(stateName);
         if (!yuanAnimator.HasState(0, hash))
         {
-            Debug.LogWarning($"【Yuan 動畫】找不到攻擊狀態「{attackStateName}」。", this);
+            Debug.LogWarning($"【Yuan 動畫】找不到攻擊狀態「{stateName}」。", this);
             return;
         }
         TrySetBool(movingParameterName, false);
-        // 每次有效出手都重新播放，避免 Trigger 留到下一個狀態造成延後攻擊。
         yuanAnimator.Play(hash, 0, 0f);
         isPlayingAttack = true;
         attackStartedFrame = Time.frameCount;
+        nextAttackIndex = (nextAttackIndex + 1) % 3;
         hasMovementState = false;
+    }
+
+    private string GetAttackStateName(int index)
+    {
+        switch (index)
+        {
+            case 1: return secondAttackStateName;
+            case 2: return thirdAttackStateName;
+            default: return attackStateName;
+        }
     }
 
     [Header("Animator 參數名稱")]
@@ -145,9 +170,11 @@ public sealed class YuanPlayerAnimationController : MonoBehaviour
             {
                 if (Time.frameCount == attackStartedFrame) return;
                 AnimatorStateInfo state = yuanAnimator.GetCurrentAnimatorStateInfo(0);
-                if (state.fullPathHash == Animator.StringToHash(attackStateName) && state.normalizedTime < 1f)
+                string currentAttackState = GetAttackStateName((nextAttackIndex + 2) % 3);
+                if (state.fullPathHash == Animator.StringToHash(currentAttackState) && state.normalizedTime < 1f)
                     return;
                 isPlayingAttack = false;
+                comboInputDeadline = Time.time + attackComboInputWindow;
                 bool moving = playerMovement != null && playerMovement.IsMoving;
                 PlayState(moving ? walkStateName : idleStateName, moving ? "移動" : "待機");
                 hasMovementState = false;
@@ -213,6 +240,7 @@ public sealed class YuanPlayerAnimationController : MonoBehaviour
     private void PlayDeathAnimation()
     {
         isPlayingAttack = false;
+        nextAttackIndex = 0;
         TrySetBool(movingParameterName, false);
         hasMovementState = false;
 

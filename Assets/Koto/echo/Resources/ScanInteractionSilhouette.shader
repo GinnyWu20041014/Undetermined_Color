@@ -9,7 +9,7 @@ Shader "Koto/ScanInteractionSilhouette"
     }
     SubShader
     {
-        Cull Off ZWrite Off ZTest Always
+        Cull Off ZWrite Off ZTest LEqual
         Blend One One
         BlendOp Max
         CGINCLUDE
