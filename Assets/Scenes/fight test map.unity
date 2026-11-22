@@ -1207,7 +1207,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 412112675}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 163730979}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 61d474a65c8449b79b1b2989668d98aa, type: 3}
   m_Name: 
@@ -1434,6 +1434,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 680300762512975491, guid: 284a48fae22b52a46bcb13cefa10e70c, type: 3}
+      propertyPath: attackCooldown
+      value: 0.8
+      objectReference: {fileID: 0}
     - target: {fileID: 1028216717011249323, guid: 284a48fae22b52a46bcb13cefa10e70c, type: 3}
       propertyPath: m_Name
       value: player Variant
@@ -1483,6 +1487,10 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 5949753831129743096, guid: 284a48fae22b52a46bcb13cefa10e70c, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5949753831129743096, guid: 284a48fae22b52a46bcb13cefa10e70c, type: 3}
       propertyPath: firstSlotImage
       value: 
       objectReference: {fileID: 1822450480}
@@ -1498,6 +1506,10 @@ PrefabInstance:
       propertyPath: energySlider
       value: 
       objectReference: {fileID: 696468806}
+    - target: {fileID: 6198581650122665723, guid: 284a48fae22b52a46bcb13cefa10e70c, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 8748442952425191656, guid: 284a48fae22b52a46bcb13cefa10e70c, type: 3}
       propertyPath: deathImage
       value: 

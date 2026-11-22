@@ -54,7 +54,7 @@ public class playerlight : MonoBehaviour
             return;
         }
 
-        if (Input.GetKeyDown(KeyCode.E))
+        if (Input.GetKeyDown(KeyCode.Tab))
         {
             SetLight(!isLightOn && currentEnergy > 0f);
         }
