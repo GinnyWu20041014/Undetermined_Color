@@ -83,6 +83,12 @@ public sealed class Monster32AnimationController : MonoBehaviour
     [Tooltip("影紋顯示但未攻擊時要播放的完整 Animator 狀態名稱。")]
     [SerializeField] private string bodyIdleAnimationStateName = "Base Layer.M3 stand";
 
+    [InspectorName("荊棘施放動畫狀態名稱")]
+    [SerializeField] private string thornAttackAnimationStateName = "Base Layer.M3 attack";
+
+    [InspectorName("荊棘施放動畫片段")]
+    [SerializeField] private AnimationClip thornAttackAnimationClip = null;
+
 
 
     [Header("Animator 參數")]
@@ -120,6 +126,8 @@ public sealed class Monster32AnimationController : MonoBehaviour
     private bool hasEntityAnimationState;
 
     private bool hasBodyAnimationState;
+
+    private float bodyAttackAnimationUntil;
 
     private int entityAnimationStateHash;
 
@@ -452,6 +460,11 @@ public sealed class Monster32AnimationController : MonoBehaviour
         {
             bodySummonAnimationClip = FindAnimatorClip(bodyAttackAnimator, bodySummonAnimationStateName);
         }
+
+        if (thornAttackAnimationClip == null)
+        {
+            thornAttackAnimationClip = FindAnimatorClip(bodyAttackAnimator, thornAttackAnimationStateName);
+        }
     }
 
     // 場景可能覆寫了 Prefab 的舊名稱；僅在控制器確實包含 M3 狀態時修正。
@@ -640,12 +653,29 @@ public sealed class Monster32AnimationController : MonoBehaviour
 
     public void SetBodyIdleAnimation()
     {
-        if (isBodySummoning || body == null || !body.activeInHierarchy || bodyAttackAnimator == null)
+        if (isBodySummoning || Time.time < bodyAttackAnimationUntil || body == null ||
+            !body.activeInHierarchy || bodyAttackAnimator == null)
         {
             return;
         }
 
         PlayBodyAnimatorState(bodyIdleAnimationStateName, "影紋待機", false, false);
+    }
+
+    /// <summary>每次成功釋放荊棘時，從頭播放一次本體攻擊動畫。</summary>
+    public bool PlayThornAttackAnimation()
+    {
+        if (!isActiveAndEnabled || state == null || state.IsFriendly || !state.BodyCanAppear ||
+            body == null || !body.activeInHierarchy || bodyAttackAnimator == null)
+        {
+            return false;
+        }
+
+        if (!PlayBodyAnimatorState(thornAttackAnimationStateName, "荊棘施放", true, true))
+            return false;
+
+        bodyAttackAnimationUntil = Time.time + GetAnimationDuration(thornAttackAnimationClip);
+        return true;
     }
 
     private void UpdateBodyVisibility()

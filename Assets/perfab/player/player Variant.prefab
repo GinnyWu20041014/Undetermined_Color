@@ -462,7 +462,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4435436526537898479, guid: 1ec3135e16473b1419053db0e73ae5b4, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 7.04
+      value: 11.882904
       objectReference: {fileID: 0}
     - target: {fileID: 4435436526537898479, guid: 1ec3135e16473b1419053db0e73ae5b4, type: 3}
       propertyPath: m_LocalPosition.y
@@ -470,7 +470,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4435436526537898479, guid: 1ec3135e16473b1419053db0e73ae5b4, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -8.95
+      value: -13.146707
       objectReference: {fileID: 0}
     - target: {fileID: 4435436526537898479, guid: 1ec3135e16473b1419053db0e73ae5b4, type: 3}
       propertyPath: m_LocalRotation.w
@@ -568,7 +568,7 @@ PrefabInstance:
       addedObject: {fileID: 6963236767450146336}
     - targetCorrespondingSourceObject: {fileID: 3262242003946971532, guid: 1ec3135e16473b1419053db0e73ae5b4, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 3020860292373815044}
+      addedObject: {fileID: 1213746298464018688}
   m_SourcePrefab: {fileID: 100100000, guid: 1ec3135e16473b1419053db0e73ae5b4, type: 3}
 --- !u!1 &1028216717011249323 stripped
 GameObject:
@@ -592,7 +592,7 @@ MonoBehaviour:
   attackDirection: {fileID: 7734373511981393417}
   attackDamage: 20
   attackRange: 1.62
-  attackCooldown: 0.35
+  attackCooldown: 0.8
 --- !u!114 &8748442952425191656
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -619,9 +619,9 @@ MonoBehaviour:
   deathVignetteColor: {r: 0, g: 0, b: 0, a: 1}
   playerMovement: {fileID: 1991713445189629530}
   additionalDeathDisabledBehaviours: []
-  lowHealthColor: {r: 0.74509805, g: 0.19607843, b: 0.19607843, a: 1}
+  lowHealthColor: {r: 0.74509805, g: 0.19607843, b: 0.19607843, a: 0.39215687}
   lowHealthFlashFrequency: 3
-  criticalHealthColor: {r: 0.74509805, g: 0.19607843, b: 0.19607843, a: 1}
+  criticalHealthColor: {r: 0.74509805, g: 0.19607843, b: 0.19607843, a: 0.38039216}
   criticalHealthFlashFrequency: 6
 --- !u!114 &1991713445189629530
 MonoBehaviour:
@@ -649,7 +649,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1028216717011249323}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 779f244d09914e739b2a265df003eb4c, type: 3}
   m_Name: 
@@ -681,7 +681,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1028216717011249323}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 61d474a65c8449b79b1b2989668d98aa, type: 3}
   m_Name: 
@@ -714,9 +714,9 @@ MonoBehaviour:
   playerLight: {fileID: 1633515201407264966}
   energySlider: {fileID: 0}
   initialEnergy: 100
-  energyConsumptionPerSecond: 10
+  energyConsumptionPerSecond: 5
   energyRestoredOnHit: 2
-  energyRestoredOnDefeat: 30
+  energyRestoredOnDefeat: 20
 --- !u!54 &7905262047351520649
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -765,7 +765,7 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 2.4, y: 4.12, z: 0.28}
   m_Center: {x: 0.02, y: 2.51, z: 0}
---- !u!114 &3020860292373815044
+--- !u!114 &1213746298464018688
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -780,12 +780,60 @@ MonoBehaviour:
   presetId: player
   cameraPositionInitialized: 0
   references:
+  - owner: {fileID: 8748442952425191656}
+    field: deathImage
+    arrayIndex: -1
+    targetId: ui
+    targetPath: blake:0
+    componentType: UnityEngine.UI.Image, UnityEngine.UI, Version=1.0.0.0, Culture=neutral,
+      PublicKeyToken=null
+    componentIndex: 0
+  - owner: {fileID: 8748442952425191656}
+    field: postProcessVolume
+    arrayIndex: -1
+    targetId: volume
+    targetPath: 
+    componentType: UnityEngine.Rendering.Volume, Unity.RenderPipelines.Core.Runtime,
+      Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
+    componentIndex: 0
   - owner: {fileID: 1991713445189629530}
     field: movementCamera
     arrayIndex: -1
     targetId: camera
     targetPath: 
     componentType: UnityEngine.Camera, UnityEngine.CoreModule, Version=0.0.0.0, Culture=neutral,
+      PublicKeyToken=null
+    componentIndex: 0
+  - owner: {fileID: 5949753831129743096}
+    field: firstSlotImage
+    arrayIndex: -1
+    targetId: ui
+    targetPath: Image:0
+    componentType: UnityEngine.UI.Image, UnityEngine.UI, Version=1.0.0.0, Culture=neutral,
+      PublicKeyToken=null
+    componentIndex: 0
+  - owner: {fileID: 5949753831129743096}
+    field: secondSlotImage
+    arrayIndex: -1
+    targetId: ui
+    targetPath: Image%20%281%29:0
+    componentType: UnityEngine.UI.Image, UnityEngine.UI, Version=1.0.0.0, Culture=neutral,
+      PublicKeyToken=null
+    componentIndex: 0
+  - owner: {fileID: 5949753831129743096}
+    field: thirdSlotImage
+    arrayIndex: -1
+    targetId: ui
+    targetPath: Image%20%282%29:0
+    componentType: UnityEngine.UI.Image, UnityEngine.UI, Version=1.0.0.0, Culture=neutral,
+      PublicKeyToken=null
+    componentIndex: 0
+  - owner: {fileID: 6001521075157704442}
+    field: energySlider
+    arrayIndex: -1
+    targetId: ui
+    targetPath: Slider:0
+    componentType: UnityEngine.UI.Slider, UnityEngine.UI, Version=1.0.0.0, Culture=neutral,
       PublicKeyToken=null
     componentIndex: 0
 --- !u!4 &2201394338906878152 stripped

@@ -40,6 +40,7 @@ public sealed class Monster3ThornAttack : MonoBehaviour
     {
         if (!Ready || player == null || player.IsDead) return;
         nextAttackAt = Time.time + attackInterval;
+        GetComponent<Monster32AnimationController>()?.PlayThornAttackAnimation();
         // 同一次施放的兩個點分處玩家兩側，避免完全重疊；位置不跟隨玩家。
         float angle = Random.Range(0f, Mathf.PI * 2f);
         for (int i = 0; i < 2; i++)
