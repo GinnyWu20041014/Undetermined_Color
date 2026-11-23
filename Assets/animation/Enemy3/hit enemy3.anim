@@ -721,7 +721,7 @@ AnimationClip:
         inWeight: 0
         outWeight: 0
       - serializedVersion: 3
-        time: 0.5
+        time: 0.46666667
         value: 1
         inSlope: Infinity
         outSlope: Infinity
@@ -754,7 +754,7 @@ AnimationClip:
       value: {fileID: -485782, guid: 910167108a9ea954792a1d4faf81a424, type: 3}
     - time: 0.41666666
       value: {fileID: -1093050124, guid: 910167108a9ea954792a1d4faf81a424, type: 3}
-    - time: 0.5
+    - time: 0.46666667
       value: {fileID: -1464971499, guid: 910167108a9ea954792a1d4faf81a424, type: 3}
     attribute: m_Sprite
     path: Enemy3 hit_0
@@ -1007,7 +1007,7 @@ AnimationClip:
     m_AdditiveReferencePoseClip: {fileID: 0}
     m_AdditiveReferencePoseTime: 0
     m_StartTime: 0
-    m_StopTime: 0.51666665
+    m_StopTime: 0.48333335
     m_OrientationOffsetY: 0
     m_Level: 0
     m_CycleOffset: 0
@@ -1727,7 +1727,7 @@ AnimationClip:
         inWeight: 0
         outWeight: 0
       - serializedVersion: 3
-        time: 0.5
+        time: 0.46666667
         value: 1
         inSlope: Infinity
         outSlope: Infinity
